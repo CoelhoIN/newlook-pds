@@ -1,7 +1,15 @@
+"use client"
+
 import Image from "next/image"
 import { Button } from "./ui/button"
+import { useRouter } from "next/navigation"
 
 const IntroductionSection = () => {
+  const router = useRouter()
+
+  const handleBookingClick = () => {
+    router.push("/bookings")
+  }
   return (
     <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
       <div className="grid min-h-[70vh] grid-cols-1 items-center gap-8 lg:grid-cols-3">
@@ -20,6 +28,7 @@ const IntroductionSection = () => {
           <Button
             size="lg"
             className="bg-[#D4A574] px-8 py-4 text-lg tracking-wide text-black transition-all duration-300 hover:scale-105 hover:bg-[#D4A574]/90 hover:shadow-lg hover:shadow-[#D4A574]/25"
+            onClick={handleBookingClick}
           >
             AGENDAR HORÁRIO
           </Button>

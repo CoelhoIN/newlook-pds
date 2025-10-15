@@ -5,21 +5,38 @@ import Link from "next/link"
 import { Button } from "./ui/button"
 import { Menu, X } from "lucide-react"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog"
+import { Label } from "./ui/label"
+import { Input } from "./ui/input"
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 
 const Header = () => {
-  const router = useRouter()
-
-  const handleBookingClick = () => {
-    router.push("/bookings")
-  }
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [accountType, setAccountType] = useState<"existing" | "new">("existing")
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    password: "",
+  })
   const navigationItems = [
     { name: "SOBRE NÓS", href: "#sobre" },
     { name: "SERVIÇOS", href: "#servicos" },
     { name: "CONTATO", href: "#contato" },
-    { name: "MINHA CONTA", href: "/account" },
+    // { name: "MINHA CONTA", href: "/account" },
   ]
+
+  const canSubmit =
+    accountType === "existing"
+      ? formData.email && formData.password
+      : formData.name && formData.phone && formData.email && formData.password
 
   return (
     <div className="fixed left-0 right-0 top-0 z-50 border-b border-[#8d6e3d]/20 bg-black/90 backdrop-blur-md">
@@ -40,12 +57,181 @@ const Header = () => {
                 {item.name}
               </Link>
             ))}
-            <Button
-              className="rounded-md px-6 py-2"
-              onClick={handleBookingClick}
-            >
-              AGENDAMENTO
-            </Button>
+            <Dialog>
+              <form>
+                <DialogTrigger asChild>
+                  <Button className="primary">ENTRAR</Button>
+                </DialogTrigger>
+                <DialogContent className="w-[90%] space-y-4">
+                  <DialogHeader>
+                    <DialogTitle>Faça Login/Cadastro para entrar</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4">
+                    <div className="grid gap-3 space-y-4">
+                      <RadioGroup
+                        value={accountType}
+                        onValueChange={(value) =>
+                          setAccountType(value as "existing" | "new")
+                        }
+                        className="flex items-center"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="existing"
+                            id="existing"
+                            className="border-[#D4A574] text-[#D4A574]"
+                          />
+                          <Label
+                            htmlFor="existing"
+                            className="cursor-pointer text-white"
+                          >
+                            Já tenho uma conta
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="new"
+                            id="new"
+                            className="border-[#D4A574] text-[#D4A574]"
+                          />
+                          <Label
+                            htmlFor="new"
+                            className="cursor-pointer text-white"
+                          >
+                            Não tenho uma conta
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                      {accountType === "existing" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="email" className="text-white">
+                              Email
+                            </Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={formData.email}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="seu@email.com"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="password" className="text-white">
+                              Senha
+                            </Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={formData.password}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  password: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="Digite sua senha"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {/* New Account Form */}
+                      {accountType === "new" && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="name" className="text-white">
+                              Nome completo
+                            </Label>
+                            <Input
+                              id="name"
+                              value={formData.name}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  name: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="Seu nome completo"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="phone" className="text-white">
+                              Telefone
+                            </Label>
+                            <Input
+                              id="phone"
+                              value={formData.phone}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  phone: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="(51) 99999-9999"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="email" className="text-white">
+                              E-mail
+                            </Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={formData.email}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="seu@email.com"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="password" className="text-white">
+                              Senha
+                            </Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              value={formData.password}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  password: e.target.value,
+                                }))
+                              }
+                              className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                              placeholder="Crie uma senha"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={!canSubmit}>
+                      ENTRAR
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </form>
+            </Dialog>
           </nav>
           <div className="md:hidden">
             <Button
@@ -77,14 +263,181 @@ const Header = () => {
                   {item.name}
                 </Link>
               ))}
-              <Button
-                className="mt-4 w-full bg-[#8d6e3d] text-[#ededed] hover:bg-[#8d6e3d]/80"
-                onClick={() => {
-                  setIsMenuOpen(false)
-                }}
-              >
-                AGENDAMENTO
-              </Button>
+              <Dialog>
+                <form>
+                  <DialogTrigger asChild>
+                    <Button className="primary">ENTRAR</Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-[90%] space-y-4">
+                    <DialogHeader>
+                      <DialogTitle>Faça Login/Cadastro para entrar</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                      <div className="grid gap-3 space-y-4">
+                        <RadioGroup
+                          value={accountType}
+                          onValueChange={(value) =>
+                            setAccountType(value as "existing" | "new")
+                          }
+                          className="flex items-center"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="existing"
+                              id="existing"
+                              className="border-[#D4A574] text-[#D4A574]"
+                            />
+                            <Label
+                              htmlFor="existing"
+                              className="cursor-pointer text-white"
+                            >
+                              Já tenho uma conta
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem
+                              value="new"
+                              id="new"
+                              className="border-[#D4A574] text-[#D4A574]"
+                            />
+                            <Label
+                              htmlFor="new"
+                              className="cursor-pointer text-white"
+                            >
+                              Não tenho uma conta
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                        {accountType === "existing" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-white">
+                                Email
+                              </Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="seu@email.com"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="password" className="text-white">
+                                Senha
+                              </Label>
+                              <Input
+                                id="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    password: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="Digite sua senha"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* New Account Form */}
+                        {accountType === "new" && (
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="name" className="text-white">
+                                Nome completo
+                              </Label>
+                              <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    name: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="Seu nome completo"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="phone" className="text-white">
+                                Telefone
+                              </Label>
+                              <Input
+                                id="phone"
+                                value={formData.phone}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    phone: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="(51) 99999-9999"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="email" className="text-white">
+                                E-mail
+                              </Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="seu@email.com"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="password" className="text-white">
+                                Senha
+                              </Label>
+                              <Input
+                                id="password"
+                                type="password"
+                                value={formData.password}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    password: e.target.value,
+                                  }))
+                                }
+                                className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
+                                placeholder="Crie uma senha"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={!canSubmit}>
+                        ENTRAR
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </form>
+              </Dialog>
             </div>
           </div>
         )}
