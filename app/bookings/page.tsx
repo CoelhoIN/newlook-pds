@@ -217,7 +217,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
   }
 
   const handleSubmit = () => {
-    // Aqui você implementaria a lógica de envio do agendamento
     console.log("Agendamento confirmado:", {
       services: selectedServiceDetails,
       professionals: selectedProfessionals,
