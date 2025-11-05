@@ -1,3 +1,5 @@
+"use client"
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,10 +17,7 @@ import {
   User,
   X,
 } from "lucide-react"
-
-interface AccountSectionProps {
-  onBack: () => void
-}
+import { useRouter } from "next/navigation"
 
 // Dados mock do usuário
 const userData = {
@@ -99,7 +98,13 @@ const pastBookings = [
   },
 ]
 
-const Account = ({ onBack }: AccountSectionProps) => {
+const Account = () => {
+  const router = useRouter()
+
+  const handleHomePage = () => {
+    router.push("/")
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -130,20 +135,19 @@ const Account = ({ onBack }: AccountSectionProps) => {
   return (
     <section className="min-h-screen bg-gradient-to-b from-black to-[#0A0A0A] pb-12 pt-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Header com botão voltar */}
         <div className="mb-8 mt-12 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={handleHomePage}
               className="text-white hover:bg-[#D4A574]/10 hover:text-[#D4A574]"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-3xl text-[#ededed] md:text-4xl">
-                Minha <span className="text-[#D4A574]">Conta</span>
+              <h1 className="text-3xl text-[#D4A574] md:text-4xl">
+                Minha Conta
               </h1>
               <p className="mt-1 text-white/70">
                 Gerencie suas informações e agendamentos

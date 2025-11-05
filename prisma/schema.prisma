@@ -22,12 +22,12 @@ enum Role {
 }
 
 model Employee {
-  id        Int       @id @default(autoincrement())
-  name      String
-  serviceId Int
-  status    String
-  service   Service   @relation(fields: [serviceId], references: [id])
-  bookings  Booking[]
+  id         Int       @id @default(autoincrement())
+  name       String
+  experience String
+  status     String
+  services   Service[] @relation("EmployeeServices")
+  bookings   Booking[]
 }
 
 model Service {
@@ -35,7 +35,7 @@ model Service {
   name            String
   category        String
   price           Decimal          @db.Decimal(10, 2)
-  employees       Employee[]
+  employees       Employee[]       @relation("EmployeeServices")
   bookingServices BookingService[]
 }
 

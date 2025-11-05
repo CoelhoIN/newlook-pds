@@ -50,13 +50,13 @@ const AboutSection = () => {
                 </p>
               </div>
               <div className="text-center">
-                <div className="mb-2 text-3xl text-[#8d6e3d]">4</div>
+                <div className="mb-2 text-3xl text-[#8d6e3d]">20+</div>
                 <p className="text-sm text-[#ededed]/70">Especialidades</p>
               </div>
             </div>
           </div>
 
-          {/* Image */}
+          {/* Imagem */}
           <div className="relative">
             <div className="relative overflow-hidden rounded-2xl">
               <Image
@@ -66,13 +66,9 @@ const AboutSection = () => {
                 width={700}
               />
 
-              {/* Overlay gradient */}
+              {/* Decoração imagem */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-
-              {/* Decorative border */}
               <div className="absolute inset-0 rounded-2xl border-2 border-[#8d6e3d]/30" />
-
-              {/* Floating quote */}
               <div className="absolute bottom-6 left-6 right-6 rounded-lg bg-black/70 p-6 backdrop-blur-sm">
                 <p className="mb-2 text-lg italic text-[#ededed]">
                   {`"Tradição, qualidade e inovação"`}

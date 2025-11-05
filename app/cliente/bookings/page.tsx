@@ -20,10 +20,10 @@ import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ptBR } from "date-fns/locale"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useRouter } from "next/navigation"
 
 const services = [
   {
@@ -160,11 +160,12 @@ const professionals = [
   },
 ]
 
-interface BookingsProps {
-  onBack: () => void
-}
+const Bookings = () => {
+  const router = useRouter()
 
-const Bookings = ({ onBack }: BookingsProps) => {
+  const handleHomePage = () => {
+    router.push("/")
+  }
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [selectedProfessionals, setSelectedProfessionals] = useState<{
     [serviceId: string]: string
@@ -189,11 +190,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
     return (
       total + parseFloat(service.price.replace("R$ ", "").replace(",", "."))
     )
-  }, 0)
-
-  const totalDuration = selectedServiceDetails.reduce((total, service) => {
-    const minutes = parseInt(service.duration.replace(" min", ""))
-    return total + minutes
   }, 0)
 
   const handleServiceToggle = (serviceId: string) => {
@@ -251,13 +247,12 @@ const Bookings = ({ onBack }: BookingsProps) => {
   return (
     <section className="min-h-screen bg-gradient-to-b from-black to-[#0A0A0A] pb-12 pt-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8 mt-12 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={handleHomePage}
               className="text-white hover:bg-[#D4A574]/10 hover:text-[#D4A574]"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -272,7 +267,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
             </div>
           </div>
 
-          {/* Progress Steps */}
+          {/* Etapas */}
           <div className="hidden items-center space-x-4 md:flex">
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">
@@ -298,9 +293,9 @@ const Bookings = ({ onBack }: BookingsProps) => {
         </div>
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Main Content */}
+          {/* Conteúdo Principal */}
           <div className="lg:col-span-2">
-            {/* Step 1: Service Selection */}
+            {/* Etapa 1: Selecionar Serviço */}
             {currentStep === 1 && (
               <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
                 <CardHeader>
@@ -359,9 +354,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
                                         <h4 className="text-white">
                                           {service.name}
                                         </h4>
-                                        <p className="text-sm text-white/60">
-                                          {service.duration}
-                                        </p>
                                       </div>
                                     </div>
                                     <div className="text-right">
@@ -381,7 +373,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
               </Card>
             )}
 
-            {/* Step 2: Professional Selection */}
+            {/* Etapa 2: Selecionar Profissional */}
             {currentStep === 2 && (
               <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
                 <CardHeader>
@@ -413,7 +405,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
                                 {service.name}
                               </h3>
                               <p className="text-sm text-white/60">
-                                {service.duration} • {service.price}
+                                {service.price}
                               </p>
                             </div>
                           </div>
@@ -456,7 +448,10 @@ const Bookings = ({ onBack }: BookingsProps) => {
                                         variant="outline"
                                         className="border-[#D4A574]/30 text-[#D4A574]"
                                       >
-                                        {professional.experience}
+                                        <p>
+                                          {professional.experience} de
+                                          experiência
+                                        </p>
                                       </Badge>
                                       {isSelected && (
                                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#D4A574]">
@@ -477,7 +472,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
               </Card>
             )}
 
-            {/* Step 3: Date and Time Selection */}
+            {/* Etapa 3: Selecionar Dia e Hora */}
             {currentStep === 3 && (
               <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
                 <CardHeader>
@@ -491,7 +486,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                    {/* Calendar */}
                     <div>
                       <Label className="mb-4 block text-white">Data</Label>
                       <Calendar
@@ -503,8 +497,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
                         className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A]"
                       />
                     </div>
-
-                    {/* Time Slots */}
                     <div>
                       <Label className="mb-4 block text-white">
                         Horário disponível
@@ -534,7 +526,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
               </Card>
             )}
 
-            {/* Step 4: Personal Information */}
+            {/* Etapa 4: Login ou Cadastro */}
             {currentStep === 4 && (
               <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
                 <CardHeader>
@@ -547,7 +539,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Account Type Selection */}
+                  {/* Selecionar tipo de conta */}
                   <RadioGroup
                     value={accountType}
                     onValueChange={(value) =>
@@ -585,7 +577,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
 
                   <Separator className="bg-[#2A2A2A]" />
 
-                  {/* Existing Account Form */}
+                  {/* Formulário de Login */}
                   {accountType === "existing" && (
                     <>
                       <div className="space-y-2">
@@ -628,7 +620,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
                     </>
                   )}
 
-                  {/* New Account Form */}
+                  {/* Formulário de Cadastro */}
                   {accountType === "new" && (
                     <>
                       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -706,32 +698,13 @@ const Bookings = ({ onBack }: BookingsProps) => {
                           placeholder="Crie uma senha"
                         />
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="observations" className="text-white">
-                          Observações
-                        </Label>
-                        <Textarea
-                          id="observations"
-                          value={formData.observations}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              observations: e.target.value,
-                            }))
-                          }
-                          className="resize-none border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                          placeholder="Alguma observação especial..."
-                          rows={4}
-                        />
-                      </div>
                     </>
                   )}
                 </CardContent>
               </Card>
             )}
 
-            {/* Navigation Buttons */}
+            {/* Botões de Navegação */}
             <div className="mt-8 flex justify-between">
               <Button
                 variant="outline"
@@ -766,9 +739,8 @@ const Bookings = ({ onBack }: BookingsProps) => {
             </div>
           </div>
 
-          {/* Sidebar - Summary */}
+          {/* Resumo do Agendamento */}
           <div className="space-y-6">
-            {/* Selected Services */}
             <Card className="top-24 border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-white">
@@ -816,12 +788,6 @@ const Bookings = ({ onBack }: BookingsProps) => {
                           <span className="text-white/70">Horário:</span>
                           <span className="text-white">{selectedTime}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/70">Duração:</span>
-                          <span className="text-white">
-                            {totalDuration} min
-                          </span>
-                        </div>
                       </div>
                     )}
 
@@ -842,7 +808,7 @@ const Bookings = ({ onBack }: BookingsProps) => {
               </CardContent>
             </Card>
 
-            {/* Contact Info */}
+            {/* Infos para Contato */}
             <Card className="border-[#2e2e2e] bg-black/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle className="text-lg text-[#ededed]">

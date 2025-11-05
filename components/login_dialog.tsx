@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "./ui/button"
 import { useState } from "react"
@@ -50,7 +52,7 @@ const LoginDialog = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="text-[#ededed] hover:text-[#8d6e3d]"
+                  className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
                 >
                   {session.user.name}
                 </Button>
@@ -59,23 +61,46 @@ const LoginDialog = () => {
                 {session.user.role === "ADMIN" ? (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href="/admin/dashboard">Dashboard</Link>
+                      <Link
+                        href="/admin/dashboard"
+                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                      >
+                        Painel de Controle
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/admin/agenda">Agenda</Link>
+                      <Link
+                        href="/admin/agenda"
+                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                      >
+                        Agenda
+                      </Link>
                     </DropdownMenuItem>
                   </>
                 ) : (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link href="/bookings">Meus Agendamentos</Link>
+                      <Link
+                        href="/cliente/bookings"
+                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                      >
+                        Marcar Agendamento
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/account">Meu Perfil</Link>
+                      <Link
+                        href="/cliente/account"
+                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                      >
+                        Meu Perfil
+                      </Link>
                     </DropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuItem onClick={() => signOut()}>
+                <DropdownMenuItem
+                  onClick={() => signOut()}
+                  className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                >
                   Sair
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -135,6 +160,8 @@ const LoginDialog = () => {
                   } else {
                     setError("Erro inesperado")
                   }
+                } finally {
+                  setIsLoading(false)
                 }
               }}
               className="space-y-4"
