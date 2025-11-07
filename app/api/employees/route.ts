@@ -9,8 +9,12 @@ export async function GET() {
       include: { services: true },
       orderBy: { name: "asc" },
     })
+    const formatted = employees.map((emp) => ({
+      ...emp,
+      specialties: emp.services.map((s) => s.id),
+    }))
 
-    return NextResponse.json(employees)
+    return NextResponse.json(formatted)
   } catch (error) {
     console.error("Erro ao listar funcionários:", error)
     return NextResponse.json(

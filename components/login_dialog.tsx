@@ -81,7 +81,7 @@ const LoginDialog = () => {
                   <>
                     <DropdownMenuItem asChild>
                       <Link
-                        href="/cliente/bookings"
+                        href="/bookings"
                         className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
                       >
                         Marcar Agendamento

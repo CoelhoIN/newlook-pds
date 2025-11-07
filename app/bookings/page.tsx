@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useEffect, useState } from "react"
 import {
   ArrowLeft,
   User,
@@ -8,11 +8,12 @@ import {
   Mail,
   Calendar as CalendarIcon,
   Scissors,
-  Heart,
-  Sparkles,
-  Flower2,
   Check,
   Users,
+  Sparkles,
+  Heart,
+  Flower2,
+  LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,73 +25,24 @@ import { Separator } from "@/components/ui/separator"
 import { ptBR } from "date-fns/locale"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useRouter } from "next/navigation"
+import { signIn, useSession } from "next-auth/react"
 
-const services = [
-  {
-    id: "corte-feminino",
-    name: "Corte Feminino",
-    duration: "60 min",
-    price: "R$ 45,00",
-    icon: Scissors,
-    category: "Cabelo",
-  },
-  {
-    id: "corte-masculino",
-    name: "Corte Masculino",
-    duration: "45 min",
-    price: "R$ 35,00",
-    icon: Scissors,
-    category: "Cabelo",
-  },
-  {
-    id: "coloracao",
-    name: "Coloração",
-    duration: "120 min",
-    price: "R$ 80,00",
-    icon: Sparkles,
-    category: "Cabelo",
-  },
-  {
-    id: "escova",
-    name: "Escova e Finalização",
-    duration: "45 min",
-    price: "R$ 30,00",
-    icon: Scissors,
-    category: "Cabelo",
-  },
-  {
-    id: "manicure",
-    name: "Manicure",
-    duration: "60 min",
-    price: "R$ 25,00",
-    icon: Sparkles,
-    category: "Unhas",
-  },
-  {
-    id: "pedicure",
-    name: "Pedicure",
-    duration: "60 min",
-    price: "R$ 30,00",
-    icon: Sparkles,
-    category: "Unhas",
-  },
-  {
-    id: "massagem-relaxante",
-    name: "Massagem Relaxante",
-    duration: "60 min",
-    price: "R$ 60,00",
-    icon: Heart,
-    category: "Massagem",
-  },
-  {
-    id: "depilacao-pernas",
-    name: "Depilação Pernas",
-    duration: "45 min",
-    price: "R$ 40,00",
-    icon: Flower2,
-    category: "Depilação",
-  },
-]
+type Service = {
+  id: number
+  name: string
+  category: string
+  price: number
+}
+
+type Professional = {
+  id: number
+  name: string
+  experience: string
+  description: string
+  status: string
+  services?: Service[]
+  specialties: number[]
+}
 
 const timeSlots = [
   "09:00",
@@ -99,6 +51,10 @@ const timeSlots = [
   "10:30",
   "11:00",
   "11:30",
+  "12:00",
+  "12:30",
+  "13:00",
+  "13:30",
   "14:00",
   "14:30",
   "15:00",
@@ -107,61 +63,20 @@ const timeSlots = [
   "16:30",
   "17:00",
 ]
-
-const professionals = [
-  {
-    id: "maria-silva",
-    name: "Maria Silva",
-    specialties: ["corte-feminino", "corte-masculino", "coloracao", "escova"],
-    experience: "8 anos",
-    description: "Especialista em cortes modernos e coloração",
-  },
-  {
-    id: "ana-costa",
-    name: "Ana Costa",
-    specialties: ["corte-feminino", "coloracao", "escova"],
-    experience: "6 anos",
-    description: "Expert em coloração e tratamentos capilares",
-  },
-  {
-    id: "carlos-oliveira",
-    name: "Carlos Oliveira",
-    specialties: ["corte-masculino", "escova"],
-    experience: "5 anos",
-    description: "Especialista em cortes masculinos clássicos e modernos",
-  },
-  {
-    id: "juliana-santos",
-    name: "Juliana Santos",
-    specialties: ["manicure", "pedicure"],
-    experience: "7 anos",
-    description: "Expert em nail art e cuidados com unhas",
-  },
-  {
-    id: "patricia-lima",
-    name: "Patrícia Lima",
-    specialties: ["manicure", "pedicure"],
-    experience: "4 anos",
-    description: "Especialista em esmaltação em gel e nail design",
-  },
-  {
-    id: "renata-ferreira",
-    name: "Renata Ferreira",
-    specialties: ["massagem-relaxante"],
-    experience: "9 anos",
-    description: "Massoterapeuta especializada em relaxamento",
-  },
-  {
-    id: "luciana-rocha",
-    name: "Luciana Rocha",
-    specialties: ["depilacao-pernas"],
-    experience: "6 anos",
-    description: "Especialista em depilação corporal e facial",
-  },
-]
+const serviceIcons: Record<string, LucideIcon> = {
+  Cabelo: Scissors,
+  "Manicure/Pedicure": Sparkles,
+  Massagem: Heart,
+  "Depilação Corporal": Flower2,
+}
 
 const Bookings = () => {
   const router = useRouter()
+  const { data: session, status } = useSession()
+  const isAuthenticated = status === "authenticated"
+
+  const [services, setServices] = useState<Service[]>([])
+  const [professionals, setProfessionals] = useState<Professional[]>([])
 
   const handleHomePage = () => {
     router.push("/")
@@ -179,16 +94,40 @@ const Bookings = () => {
     phone: "",
     email: "",
     password: "",
-    observations: "",
   })
 
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [servicesRes, professionalsRes] = await Promise.all([
+          fetch("/api/services"),
+          fetch("/api/employees"),
+        ])
+        const servicesData = await servicesRes.json()
+        const professionalsData = await professionalsRes.json()
+        setServices(servicesData)
+        setProfessionals(professionalsData)
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error)
+      }
+    }
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated && currentStep === 4) {
+      handleSubmit()
+    }
+  }, [isAuthenticated, currentStep])
+
   const selectedServiceDetails = services.filter((service) =>
-    selectedServices.includes(service.id),
+    selectedServices.includes(service.id.toString()),
   )
 
   const totalPrice = selectedServiceDetails.reduce((total, service) => {
     return (
-      total + parseFloat(service.price.replace("R$ ", "").replace(",", "."))
+      total +
+      parseFloat(service.price.toString().replace("R$ ", "").replace(",", "."))
     )
   }, 0)
 
@@ -212,16 +151,52 @@ const Bookings = () => {
     }
   }
 
-  const handleSubmit = () => {
-    console.log("Agendamento confirmado:", {
-      services: selectedServiceDetails,
-      professionals: selectedProfessionals,
-      date: selectedDate,
-      time: selectedTime,
-      client: formData,
-      total: totalPrice,
-    })
-    alert("Agendamento realizado com sucesso!")
+  const handleSubmit = async () => {
+    try {
+      const clientData = isAuthenticated
+        ? {
+            name: session?.user?.name,
+            email: session?.user?.email,
+            phone: session?.user?.phone || "",
+          }
+        : formData
+
+      if (!isAuthenticated && accountType === "existing") {
+        const loginResult = await signIn("credentials", {
+          email: formData.email,
+          password: formData.password,
+          redirect: false,
+        })
+
+        if (loginResult?.error) throw new Error("Email ou senha incorretos")
+        router.refresh()
+      }
+
+      const response = await fetch("/api/booking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          services: selectedServiceDetails,
+          professionals: selectedProfessionals,
+          date: selectedDate,
+          time: selectedTime,
+          client: clientData,
+          accountType: isAuthenticated ? "existing" : accountType,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao realizar agendamento.")
+      }
+
+      alert("✅ " + data.message)
+      router.push("/")
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err.message : "Erro desconhecido"
+      alert("❌ " + error)
+    }
   }
 
   const handleProfessionalSelect = (
@@ -243,6 +218,42 @@ const Bookings = () => {
     accountType === "existing"
       ? formData.email && formData.password
       : formData.name && formData.phone && formData.email && formData.password
+
+  const [unavailableTimes, setUnavailableTimes] = useState<string[]>([])
+
+  useEffect(() => {
+    async function fetchUnavailableTimes() {
+      if (!selectedDate) {
+        setUnavailableTimes([])
+        return
+      }
+
+      try {
+        const dateStr = selectedDate.toISOString().split("T")[0]
+        const res = await fetch(`/api/booking?date=${dateStr}`)
+
+        const data: { time: string }[] = await res.json()
+
+        console.log("Horários retornados do banco:", data)
+
+        const filtered = data.filter((b) => b.time.startsWith(dateStr))
+
+        const bookedTimes = filtered.map((b) => {
+          const timePart = b.time.split(" ")[1]
+          const [hour, minute] = timePart.split(":")
+          return `${hour}:${minute}`
+        })
+
+        console.log("Horários ocupados normalizados:", bookedTimes)
+        setUnavailableTimes(bookedTimes)
+      } catch (error) {
+        console.error("Erro ao buscar horários ocupados:", error)
+        setUnavailableTimes([])
+      }
+    }
+
+    fetchUnavailableTimes()
+  }, [selectedDate])
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-black to-[#0A0A0A] pb-12 pt-24">
@@ -308,67 +319,77 @@ const Bookings = () => {
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {["Cabelo", "Unhas", "Massagem", "Depilação"].map(
-                    (category) => (
-                      <div key={category}>
-                        <h3 className="mb-4 text-[#D4A574]">{category}</h3>
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          {services
-                            .filter((service) => service.category === category)
-                            .map((service) => {
-                              const IconComponent = service.icon
-                              const isSelected = selectedServices.includes(
-                                service.id,
-                              )
+                  {[
+                    "Cabelo",
+                    "Manicure/Pedicure",
+                    "Massagem",
+                    "Depilação Corporal",
+                  ].map((category) => (
+                    <div key={category}>
+                      <h3 className="mb-4 text-[#D4A574]">{category}</h3>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        {services
+                          .filter((service) => service.category === category)
+                          .map((service) => {
+                            const IconComponent =
+                              serviceIcons[service.category] || Scissors
+                            const isSelected = selectedServices.includes(
+                              service.id.toString(),
+                            )
 
-                              return (
-                                <div
-                                  key={service.id}
-                                  className={`cursor-pointer rounded-lg border p-4 transition-all duration-300 ${
-                                    isSelected
-                                      ? "border-[#D4A574] bg-[#D4A574]/10"
-                                      : "border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#D4A574]/30"
-                                  }`}
-                                  onClick={() =>
-                                    handleServiceToggle(service.id)
-                                  }
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div className="flex items-start space-x-3">
-                                      <div
-                                        className={`rounded-full p-2 ${
+                            return (
+                              <div
+                                key={service.id}
+                                className={`cursor-pointer rounded-lg border p-4 transition-all duration-300 ${
+                                  isSelected
+                                    ? "border-[#D4A574] bg-[#D4A574]/10"
+                                    : "border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#D4A574]/30"
+                                }`}
+                                onClick={() =>
+                                  handleServiceToggle(service.id.toString())
+                                }
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-start space-x-3">
+                                    <div
+                                      className={`rounded-full p-2 ${
+                                        isSelected
+                                          ? "bg-[#D4A574]"
+                                          : "bg-[#2A2A2A]"
+                                      }`}
+                                    >
+                                      <IconComponent
+                                        className={`h-4 w-4 ${
                                           isSelected
-                                            ? "bg-[#D4A574]"
-                                            : "bg-[#2A2A2A]"
+                                            ? "text-black"
+                                            : "text-[#D4A574]"
                                         }`}
-                                      >
-                                        <IconComponent
-                                          className={`h-4 w-4 ${
-                                            isSelected
-                                              ? "text-black"
-                                              : "text-[#D4A574]"
-                                          }`}
-                                        />
-                                      </div>
-                                      <div>
-                                        <h4 className="text-white">
-                                          {service.name}
-                                        </h4>
-                                      </div>
+                                      />
                                     </div>
-                                    <div className="text-right">
-                                      <p className="text-[#D4A574]">
-                                        {service.price}
-                                      </p>
+                                    <div>
+                                      <h4 className="text-white">
+                                        {service.name}
+                                      </h4>
                                     </div>
                                   </div>
+                                  <div className="text-right">
+                                    <p className="text-[#D4A574]">
+                                      {Number(service.price).toLocaleString(
+                                        "pt-BR",
+                                        {
+                                          style: "currency",
+                                          currency: "BRL",
+                                        },
+                                      )}
+                                    </p>
+                                  </div>
                                 </div>
-                              )
-                            })}
-                        </div>
+                              </div>
+                            )
+                          })}
                       </div>
-                    ),
-                  )}
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
@@ -398,14 +419,26 @@ const Bookings = () => {
                         <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
                           <div className="flex items-center space-x-3">
                             <div className="rounded-full bg-[#D4A574]/10 p-2">
-                              <service.icon className="h-5 w-5 text-[#D4A574]" />
+                              {serviceIcons[service.category] ? (
+                                React.createElement(
+                                  serviceIcons[service.category],
+                                  {
+                                    className: "h-5 w-5 text-[#D4A574]",
+                                  },
+                                )
+                              ) : (
+                                <Scissors className="h-5 w-5 text-[#D4A574]" />
+                              )}
                             </div>
                             <div>
                               <h3 className="text-lg text-white">
                                 {service.name}
                               </h3>
                               <p className="text-sm text-white/60">
-                                {service.price}
+                                {Number(service.price).toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
                               </p>
                             </div>
                           </div>
@@ -414,7 +447,8 @@ const Bookings = () => {
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                           {availableProfessionals.map((professional) => {
                             const isSelected =
-                              selectedProfessional === professional.id
+                              selectedProfessional ===
+                              professional.id.toString()
 
                             return (
                               <div
@@ -426,8 +460,8 @@ const Bookings = () => {
                                 }`}
                                 onClick={() =>
                                   handleProfessionalSelect(
-                                    service.id,
-                                    professional.id,
+                                    service.id.toString(),
+                                    professional.id.toString(),
                                   )
                                 }
                               >
@@ -502,23 +536,31 @@ const Bookings = () => {
                         Horário disponível
                       </Label>
                       <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
-                        {timeSlots.map((time) => (
-                          <Button
-                            key={time}
-                            variant={
-                              selectedTime === time ? "default" : "outline"
-                            }
-                            size="sm"
-                            className={`${
-                              selectedTime === time
-                                ? "bg-[#D4A574] text-black hover:bg-[#D4A574]/90"
-                                : "border-[#2A2A2A] text-white hover:border-[#D4A574]/30 hover:bg-[#D4A574]/10"
-                            }`}
-                            onClick={() => setSelectedTime(time)}
-                          >
-                            {time}
-                          </Button>
-                        ))}
+                        {timeSlots.map((time) => {
+                          const isUnavailable = unavailableTimes.includes(time)
+                          const isSelected = selectedTime === time
+
+                          return (
+                            <Button
+                              key={time}
+                              variant={isSelected ? "default" : "outline"}
+                              size="sm"
+                              disabled={isUnavailable}
+                              className={`${
+                                isUnavailable
+                                  ? "cursor-not-allowed opacity-50"
+                                  : isSelected
+                                    ? "bg-[#D4A574] text-black hover:bg-[#D4A574]/90"
+                                    : "border-[#2A2A2A] text-white hover:border-[#D4A574]/30 hover:bg-[#D4A574]/10"
+                              }`}
+                              onClick={() => {
+                                if (!isUnavailable) setSelectedTime(time)
+                              }}
+                            >
+                              {time}
+                            </Button>
+                          )
+                        })}
                       </div>
                     </div>
                   </div>
@@ -526,8 +568,7 @@ const Bookings = () => {
               </Card>
             )}
 
-            {/* Etapa 4: Login ou Cadastro */}
-            {currentStep === 4 && (
+            {!isAuthenticated && currentStep === 4 && (
               <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2 text-white">
@@ -715,9 +756,13 @@ const Bookings = () => {
                 Voltar
               </Button>
 
-              {currentStep < 4 ? (
+              {currentStep < 4 || isAuthenticated ? (
                 <Button
-                  onClick={handleNext}
+                  onClick={
+                    currentStep === 3 && isAuthenticated
+                      ? handleSubmit
+                      : handleNext
+                  }
                   disabled={
                     (currentStep === 1 && !canProceedStep1) ||
                     (currentStep === 2 && !canProceedStep2) ||
@@ -725,7 +770,9 @@ const Bookings = () => {
                   }
                   className="bg-[#D4A574] text-black hover:bg-[#D4A574]/90 disabled:opacity-50"
                 >
-                  Continuar
+                  {currentStep === 3 && isAuthenticated
+                    ? "Confirmar Agendamento"
+                    : "Continuar"}
                 </Button>
               ) : (
                 <Button
@@ -753,7 +800,9 @@ const Bookings = () => {
                     <div className="space-y-4">
                       {selectedServiceDetails.map((service) => {
                         const selectedProfessional = professionals.find(
-                          (p) => p.id === selectedProfessionals[service.id],
+                          (p) =>
+                            p.id.toString() ===
+                            selectedProfessionals[service.id],
                         )
 
                         return (
@@ -761,7 +810,10 @@ const Bookings = () => {
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-white">{service.name}</span>
                               <span className="text-[#D4A574]">
-                                {service.price}
+                                {Number(service.price).toLocaleString("pt-BR", {
+                                  style: "currency",
+                                  currency: "BRL",
+                                })}
                               </span>
                             </div>
                             {selectedProfessional && (
