@@ -60,21 +60,11 @@ const AboutSection = () => {
           <div className="relative">
             <div className="relative overflow-hidden rounded-2xl">
               <Image
-                src="/imagem-salao.jpg"
+                src="/newlook-atual.jpg"
                 alt="Salão New Look - Interior elegante"
                 height={18}
                 width={700}
               />
-
-              {/* Decoração imagem */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-              <div className="absolute inset-0 rounded-2xl border-2 border-[#8d6e3d]/30" />
-              <div className="absolute bottom-6 left-6 right-6 rounded-lg bg-black/70 p-6 backdrop-blur-sm">
-                <p className="mb-2 text-lg italic text-[#ededed]">
-                  {`"Tradição, qualidade e inovação"`}
-                </p>
-                <p className="text-sm text-[#8d6e3d]">Desde 1996</p>
-              </div>
             </div>
           </div>
         </div>

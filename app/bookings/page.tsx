@@ -114,12 +114,6 @@ const Bookings = () => {
     fetchData()
   }, [])
 
-  useEffect(() => {
-    if (isAuthenticated && currentStep === 4) {
-      handleSubmit()
-    }
-  }, [isAuthenticated, currentStep])
-
   const selectedServiceDetails = services.filter((service) =>
     selectedServices.includes(service.id.toString()),
   )
@@ -151,7 +145,7 @@ const Bookings = () => {
     }
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = React.useCallback(async () => {
     try {
       const clientData = isAuthenticated
         ? {
@@ -172,14 +166,22 @@ const Bookings = () => {
         router.refresh()
       }
 
+      if (!selectedDate || !selectedTime) {
+        alert("Por favor, selecione uma data e um horário válidos.")
+        return
+      }
+
+      const formattedDate = selectedDate.toISOString().split("T")[0]
+      const formattedTime = selectedTime
+
       const response = await fetch("/api/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           services: selectedServiceDetails,
           professionals: selectedProfessionals,
-          date: selectedDate,
-          time: selectedTime,
+          date: formattedDate,
+          time: formattedTime,
           client: clientData,
           accountType: isAuthenticated ? "existing" : accountType,
         }),
@@ -197,7 +199,25 @@ const Bookings = () => {
       const error = err instanceof Error ? err.message : "Erro desconhecido"
       alert("❌ " + error)
     }
-  }
+  }, [
+    isAuthenticated,
+    accountType,
+    router,
+    selectedServiceDetails,
+    selectedProfessionals,
+    selectedDate,
+    selectedTime,
+    formData,
+    session?.user?.name,
+    session?.user?.email,
+    session?.user?.phone,
+  ])
+
+  useEffect(() => {
+    if (isAuthenticated && currentStep === 4) {
+      handleSubmit()
+    }
+  }, [isAuthenticated, currentStep, handleSubmit])
 
   const handleProfessionalSelect = (
     serviceId: string,
@@ -232,16 +252,17 @@ const Bookings = () => {
         const dateStr = selectedDate.toISOString().split("T")[0]
         const res = await fetch(`/api/booking?date=${dateStr}`)
 
-        const data: { time: string }[] = await res.json()
+        const data: { date: string }[] = await res.json()
 
         console.log("Horários retornados do banco:", data)
 
-        const filtered = data.filter((b) => b.time.startsWith(dateStr))
+        const filtered = data.filter(
+          (b) => b.date && b.date.startsWith(dateStr),
+        )
 
         const bookedTimes = filtered.map((b) => {
-          const timePart = b.time.split(" ")[1]
-          const [hour, minute] = timePart.split(":")
-          return `${hour}:${minute}`
+          const timePart = new Date(b.date!).toTimeString().slice(0, 5)
+          return timePart
         })
 
         console.log("Horários ocupados normalizados:", bookedTimes)

@@ -1,0 +1,134 @@
+.calendar-container {
+  --fc-border-color: #2a2a2a;
+  --fc-button-bg-color: #1a1a1a;
+  --fc-button-border-color: #2a2a2a;
+  --fc-button-hover-bg-color: #d4a574;
+  --fc-button-hover-border-color: #d4a574;
+  --fc-button-active-bg-color: #d4a574;
+  --fc-button-active-border-color: #d4a574;
+  --fc-today-bg-color: rgba(212, 165, 116, 0.1);
+  --fc-neutral-bg-color: rgba(26, 26, 26, 0.5);
+  --fc-page-bg-color: transparent;
+}
+
+.fc {
+  background: transparent;
+}
+
+.fc .fc-scrollgrid {
+  border-color: #2a2a2a !important;
+}
+
+.fc th {
+  background: rgba(26, 26, 26, 0.5);
+  color: #d4a574;
+  border-color: #2a2a2a !important;
+  padding: 12px 8px;
+}
+
+.fc td {
+  background: rgba(10, 10, 10, 0.3);
+  border-color: #2a2a2a !important;
+}
+
+.fc .fc-daygrid-day-number {
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: #d4a574;
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: rgba(212, 165, 116, 0.1) !important;
+}
+
+.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background: #d4a574;
+  color: black;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-event {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 2px;
+  margin-bottom: 2px;
+}
+
+.fc-event:hover {
+  opacity: 0.85;
+}
+
+.fc .fc-timegrid-slot {
+  height: 3em;
+}
+
+.fc .fc-timegrid-slot-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.fc .fc-timegrid-now-indicator-line {
+  border-color: #d4a574;
+}
+
+.fc .fc-list-event:hover td {
+  background-color: rgba(212, 165, 116, 0.1);
+}
+
+.fc .fc-list-day-cushion {
+  background-color: rgba(26, 26, 26, 0.5);
+  color: #d4a574;
+}
+
+.fc .fc-list-event-title,
+.fc .fc-list-event-time {
+  color: white;
+}
+
+.fc .fc-list-event-dot {
+  border-color: #d4a574;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #2a2a2a;
+}
+
+.fc-scrollgrid-section > * {
+  border-color: #2a2a2a;
+}
+
+@media (max-width: 640px) {
+  .fc .fc-toolbar {
+    display: none;
+  }
+
+  .fc .fc-daygrid-day-number {
+    padding: 4px;
+    font-size: 0.875rem;
+  }
+
+  .fc-event {
+    font-size: 0.7rem;
+  }
+}
+
+.fc-event,
+.fc-daygrid-event,
+.fc-timegrid-event {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.fc-event .fc-event-main-frame {
+  border: none !important;
+  box-shadow: none !important;
+}

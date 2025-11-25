@@ -48,63 +48,51 @@ const LoginDialog = () => {
       <Dialog>
         <DialogTrigger asChild>
           {session?.user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            session.user.role === "ADMIN" ? (
+              <Link href="/admin">
                 <Button
                   variant="ghost"
                   className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
                 >
                   {session.user.name}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {session.user.role === "ADMIN" ? (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/admin/dashboard"
-                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                      >
-                        Painel de Controle
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/admin/agenda"
-                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                      >
-                        Agenda
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/bookings"
-                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                      >
-                        Marcar Agendamento
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link
-                        href="/cliente/account"
-                        className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                      >
-                        Meu Perfil
-                      </Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-                <DropdownMenuItem
-                  onClick={() => signOut()}
-                  className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                >
-                  Sair
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Link>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
+                  >
+                    {session.user.name}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/bookings"
+                      className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                    >
+                      Marcar Agendamento
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/cliente/account"
+                      className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                    >
+                      Meu Perfil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => signOut()}
+                    className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                  >
+                    Sair
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
           ) : (
             <Button className="primary">ENTRAR</Button>
           )}

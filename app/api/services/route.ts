@@ -12,27 +12,32 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const data = await req.json()
-  const { name, category, price } = data
+  const { name, category, price, duration } = data
 
-  if (!name || !category || !price)
+  if (!name || !category || !price || !duration)
     return NextResponse.json(
       { error: "Campos obrigatórios ausentes" },
       { status: 400 },
     )
 
   const service = await prisma.service.create({
-    data: { name, category, price },
+    data: { name, category, price, duration: Number(duration) },
   })
   return NextResponse.json(service)
 }
 
 export async function PUT(req: Request) {
   const data = await req.json()
-  const { id, name, category, price } = data
+  const { id, name, category, price, duration } = data
 
   const updated = await prisma.service.update({
     where: { id },
-    data: { name, category, price },
+    data: {
+      name,
+      category,
+      price,
+      duration: duration ? Number(duration) : undefined,
+    },
   })
   return NextResponse.json(updated)
 }

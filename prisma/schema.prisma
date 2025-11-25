@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
+  id       Int       @id @default(autoincrement())
   name     String
   phone    String
-  email    String @unique
+  email    String    @unique
   password String
-  role     Role   @default(CLIENT)
+  role     Role      @default(CLIENT)
+  bookings Booking[]
 }
 
 enum Role {
@@ -22,18 +23,20 @@ enum Role {
 }
 
 model Employee {
-  id         Int       @id @default(autoincrement())
-  name       String
-  experience String
-  status     String
-  services   Service[] @relation("EmployeeServices")
-  bookings   Booking[]
+  id              Int              @id @default(autoincrement())
+  name            String
+  experience      String
+  status          String
+  services        Service[]        @relation("EmployeeServices")
+  bookings        Booking[]
+  bookingServices BookingService[]
 }
 
 model Service {
   id              Int              @id @default(autoincrement())
   name            String
   category        String
+  duration        Int?
   price           Decimal          @db.Decimal(10, 2)
   employees       Employee[]       @relation("EmployeeServices")
   bookingServices BookingService[]
@@ -41,19 +44,24 @@ model Service {
 
 model Booking {
   id              Int              @id @default(autoincrement())
-  userId          Int
+  userId          Int?
   employeeId      Int
   date            DateTime
+  costumerName    String?
+  costumerPhone   String?
+  user            User?            @relation(fields: [userId], references: [id])
   employee        Employee         @relation(fields: [employeeId], references: [id])
   bookingServices BookingService[]
 }
 
 model BookingService {
-  bookingId Int
-  serviceId Int
-  price     Decimal @db.Decimal(10, 2)
-  booking   Booking @relation(fields: [bookingId], references: [id])
-  service   Service @relation(fields: [serviceId], references: [id])
+  bookingId  Int
+  serviceId  Int
+  employeeId Int?
+  price      Decimal   @db.Decimal(10, 2)
+  booking    Booking   @relation(fields: [bookingId], references: [id])
+  service    Service   @relation(fields: [serviceId], references: [id])
+  employee   Employee? @relation(fields: [employeeId], references: [id])
 
   @@id([bookingId, serviceId])
 }

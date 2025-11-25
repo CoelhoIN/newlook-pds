@@ -11,36 +11,118 @@ type Service = {
   price: number
 }
 
+export async function GET() {
+  try {
+    const bookings = await prisma.booking.findMany({
+      orderBy: { date: "asc" },
+      include: {
+        user: true,
+        employee: true,
+        bookingServices: {
+          include: { service: true, employee: true },
+        },
+      },
+    })
+
+    const formatted = bookings.map((b) => {
+      const services = b.bookingServices.map((bs) => ({
+        id: bs.serviceId,
+        name: bs.service.name,
+        price: Number(bs.price),
+        professional: bs.employee?.name ?? null,
+      }))
+
+      const professionals = Array.from(
+        new Set(
+          b.bookingServices.map((bs) => bs.employee?.name).filter(Boolean),
+        ),
+      )
+
+      const totalPrice = services.reduce((s, it) => s + it.price, 0)
+
+      return {
+        id: b.id,
+        date: b.date,
+        costumerName: b.user?.name ?? b.costumerName ?? "",
+        costumerPhone: b.user?.phone ?? b.costumerPhone ?? "",
+        service: services
+          .map((s) => s.name || "")
+          .filter(Boolean)
+          .join(", "),
+        professional: professionals.filter(Boolean).join(", "),
+
+        services,
+        price: totalPrice,
+      }
+    })
+
+    return NextResponse.json(formatted, { status: 200 })
+  } catch (err) {
+    console.error("GET /api/booking error:", err)
+    return NextResponse.json(
+      { error: "Erro ao buscar agendamentos." },
+      { status: 500 },
+    )
+  }
+}
 export async function POST(req: Request) {
   try {
     const { services, professionals, date, time, client, accountType } =
       await req.json()
 
-    let user = await prisma.user.findUnique({
-      where: { email: client.email },
-    })
+    const isAdminCreating = accountType === "admin"
 
-    if (!user) {
-      if (accountType === "existing") {
+    let userId: number | null = null
+
+    if (!isAdminCreating) {
+      if (!client.email) {
         return NextResponse.json(
-          { error: "Usuário não encontrado." },
+          { error: "Email é obrigatório para clientes comuns." },
           { status: 400 },
         )
       }
 
-      user = await prisma.user.create({
-        data: {
-          name: client.name,
-          email: client.email,
-          phone: client.phone,
-          password: await hash(client.password, 10),
-        },
+      let user = await prisma.user.findUnique({
+        where: { email: client.email },
       })
+
+      if (!user) {
+        if (accountType === "existing") {
+          return NextResponse.json(
+            { error: "Usuário não encontrado." },
+            { status: 400 },
+          )
+        }
+
+        user = await prisma.user.create({
+          data: {
+            name: client.name,
+            email: client.email,
+            phone: client.phone,
+            password: await hash(client.password, 10),
+          },
+        })
+      }
+
+      userId = user.id
     }
 
-    const parsedDate = new Date(date)
-    const [hours, minutes] = time.split(":")
-    parsedDate.setHours(Number(hours), Number(minutes), 0, 0)
+    const costumerName = client.name
+    const costumerPhone = client.phone
+
+    if (!date || !time) {
+      return NextResponse.json(
+        { error: "Data e hora são obrigatórias." },
+        { status: 400 },
+      )
+    }
+    const parsedDate = new Date(`${date}T${time}:00`)
+    if (isNaN(parsedDate.getTime())) {
+      return NextResponse.json(
+        { error: "Data ou hora inválida." },
+        { status: 400 },
+      )
+    }
 
     const firstEmployeeId = Object.values(professionals)[0]
     const existingBooking = await prisma.booking.findFirst({
@@ -56,9 +138,11 @@ export async function POST(req: Request) {
 
     const booking = await prisma.booking.create({
       data: {
-        userId: user.id,
+        userId: userId,
         employeeId: Number(firstEmployeeId),
         date: parsedDate,
+        costumerName: isAdminCreating ? costumerName : null,
+        costumerPhone: isAdminCreating ? costumerPhone : null,
       },
     })
 
@@ -68,19 +152,56 @@ export async function POST(req: Request) {
           data: {
             bookingId: booking.id,
             serviceId: Number(service.id),
-
-            price: parseFloat(
-              service.price.toString().replace("R$ ", "").replace(",", "."),
-            ),
+            employeeId: Number(professionals[service.id]),
+            price: Number(service.price) || 0,
           },
         }),
       ),
     )
+    const complete = await prisma.booking.findUnique({
+      where: { id: booking.id },
+      include: {
+        user: true,
+        bookingServices: {
+          include: { service: true, employee: true },
+        },
+      },
+    })
+    const servicesFormatted = complete!.bookingServices.map((bs) => ({
+      id: bs.serviceId,
+      name: bs.service?.name ?? "",
+      price: Number(bs.price),
+      professional: bs.employee?.name ?? null,
+    }))
 
-    return NextResponse.json(
-      { success: true, message: "Agendamento realizado com sucesso!" },
-      { status: 201 },
+    const professionalsFormatted = Array.from(
+      new Set(
+        complete!.bookingServices
+          .map((bs) => bs.employee?.name)
+          .filter(Boolean),
+      ),
     )
+
+    const totalPrice = servicesFormatted.reduce(
+      (sum, item) => sum + (item.price || 0),
+      0,
+    )
+
+    const responseData = {
+      id: complete!.id,
+      date: complete!.date,
+      costumerName: complete!.user?.name ?? complete!.costumerName ?? "",
+      costumerPhone: complete!.user?.phone ?? complete!.costumerPhone ?? "",
+      professional: professionalsFormatted.join(", "),
+      service: servicesFormatted
+        .map((s) => s.name)
+        .filter(Boolean)
+        .join(", "),
+      services: servicesFormatted,
+      price: totalPrice,
+    }
+
+    return NextResponse.json(responseData, { status: 201 })
   } catch (error) {
     console.error(error)
     return NextResponse.json(
