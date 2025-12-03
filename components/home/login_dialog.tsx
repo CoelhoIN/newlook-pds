@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Button } from "./ui/button"
+import { Button } from "../ui/button"
 import { useState } from "react"
 import {
   Dialog,
@@ -10,26 +10,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "./ui/dialog"
-import { Label } from "./ui/label"
-import { Input } from "./ui/input"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
+} from "../ui/dialog"
+import { Label } from "../ui/label"
+import { Input } from "../ui/input"
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
 import { useSession, signIn, signOut } from "next-auth/react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu"
+} from "../ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 
 const LoginDialog = () => {
   const { data: session } = useSession()
-
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-
   const [accountType, setAccountType] = useState<"existing" | "new">("existing")
   const [formData, setFormData] = useState({
     name: "",
@@ -46,57 +44,56 @@ const LoginDialog = () => {
   return (
     <section>
       <Dialog>
-        <DialogTrigger asChild>
-          {session?.user ? (
-            session.user.role === "ADMIN" ? (
-              <Link href="/admin">
+        {session?.user ? (
+          session.user.role === "ADMIN" ? (
+            <Button
+              asChild
+              variant="ghost"
+              className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
+            >
+              <Link href="/admin">{session.user.name}</Link>
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
                 >
                   {session.user.name}
                 </Button>
-              </Link>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="uppercase text-[#ededed] hover:text-[#8d6e3d]"
-                  >
-                    {session.user.name}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/bookings"
-                      className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                    >
-                      Marcar Agendamento
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/cliente/account"
-                      className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
-                    >
-                      Meu Perfil
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => signOut()}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/bookings"
                     className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
                   >
-                    Sair
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
-          ) : (
+                    Marcar Agendamento
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href="/cliente/account"
+                    className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                  >
+                    Meu Perfil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => signOut()}
+                  className="cursor-pointer !text-inherit transition-colors hover:!text-[#8d6e3d]"
+                >
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
+        ) : (
+          <DialogTrigger asChild>
             <Button className="primary">ENTRAR</Button>
-          )}
-        </DialogTrigger>
+          </DialogTrigger>
+        )}
 
         {!session?.user && (
           <DialogContent className="w-[90%] space-y-4">

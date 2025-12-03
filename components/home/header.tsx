@@ -2,10 +2,10 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { Button } from "./ui/button"
 import { Menu, X } from "lucide-react"
 import { useState } from "react"
 import LoginDialog from "./login_dialog"
+import { Button } from "../ui/button"
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)

@@ -3,13 +3,10 @@
 import React, { useEffect, useState } from "react"
 import {
   ArrowLeft,
-  User,
   Phone,
   Mail,
-  Calendar as CalendarIcon,
   Scissors,
   Check,
-  Users,
   Sparkles,
   Heart,
   Flower2,
@@ -17,15 +14,15 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { Calendar } from "@/components/ui/calendar"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
 import { ptBR } from "date-fns/locale"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useRouter } from "next/navigation"
 import { signIn, useSession } from "next-auth/react"
+import Step1Services from "@/components/booking/step1_services"
+import Step2Professionals from "@/components/booking/step2_professionals"
+import Step3DateTime from "@/components/booking/step3_datetime"
+import Step4Account from "@/components/booking/step4_account"
+import Summary from "@/components/booking/summary"
+import SuccessBookingDialog from "@/components/booking/success_booking_dialog"
 
 type Service = {
   id: number
@@ -72,7 +69,7 @@ const serviceIcons: Record<string, LucideIcon> = {
 
 const Bookings = () => {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { data: session, status, update } = useSession()
   const isAuthenticated = status === "authenticated"
 
   const [services, setServices] = useState<Service[]>([])
@@ -89,6 +86,7 @@ const Bookings = () => {
   const [selectedTime, setSelectedTime] = useState<string>("")
   const [currentStep, setCurrentStep] = useState(1)
   const [accountType, setAccountType] = useState<"existing" | "new">("existing")
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -144,14 +142,18 @@ const Bookings = () => {
       setCurrentStep(currentStep - 1)
     }
   }
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = React.useCallback(async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
     try {
-      const clientData = isAuthenticated
+      const clientData = session?.user
         ? {
+            id: session?.user?.id,
             name: session?.user?.name,
             email: session?.user?.email,
-            phone: session?.user?.phone || "",
+            phone: session?.user?.phone,
           }
         : formData
 
@@ -163,7 +165,8 @@ const Bookings = () => {
         })
 
         if (loginResult?.error) throw new Error("Email ou senha incorretos")
-        router.refresh()
+
+        await update()
       }
 
       if (!selectedDate || !selectedTime) {
@@ -174,6 +177,17 @@ const Bookings = () => {
       const formattedDate = selectedDate.toISOString().split("T")[0]
       const formattedTime = selectedTime
 
+      const accountTypeToSend = accountType
+
+      console.log("Body enviado para /api/booking:", {
+        services: selectedServiceDetails,
+        professionals: selectedProfessionals,
+        date: formattedDate,
+        time: formattedTime,
+        client: clientData,
+        accountType: accountTypeToSend,
+      })
+
       const response = await fetch("/api/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -183,7 +197,7 @@ const Bookings = () => {
           date: formattedDate,
           time: formattedTime,
           client: clientData,
-          accountType: isAuthenticated ? "existing" : accountType,
+          accountType: accountTypeToSend,
         }),
       })
 
@@ -193,24 +207,22 @@ const Bookings = () => {
         throw new Error(data.error || "Erro ao realizar agendamento.")
       }
 
-      alert("✅ " + data.message)
-      router.push("/")
+      setSuccessDialogOpen(true)
     } catch (err: unknown) {
       const error = err instanceof Error ? err.message : "Erro desconhecido"
       alert("❌ " + error)
     }
   }, [
+    isSubmitting,
+    update,
     isAuthenticated,
     accountType,
-    router,
     selectedServiceDetails,
     selectedProfessionals,
     selectedDate,
     selectedTime,
     formData,
-    session?.user?.name,
-    session?.user?.email,
-    session?.user?.phone,
+    session?.user,
   ])
 
   useEffect(() => {
@@ -329,441 +341,45 @@ const Bookings = () => {
           <div className="lg:col-span-2">
             {/* Etapa 1: Selecionar Serviço */}
             {currentStep === 1 && (
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-white">
-                    <Scissors className="h-5 w-5 text-[#D4A574]" />
-                    <span>Escolha seus serviços</span>
-                  </CardTitle>
-                  <p className="mt-2 text-white/60">
-                    Selecione os serviços que deseja agendar
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {[
-                    "Cabelo",
-                    "Manicure/Pedicure",
-                    "Massagem",
-                    "Depilação Corporal",
-                  ].map((category) => (
-                    <div key={category}>
-                      <h3 className="mb-4 text-[#D4A574]">{category}</h3>
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        {services
-                          .filter((service) => service.category === category)
-                          .map((service) => {
-                            const IconComponent =
-                              serviceIcons[service.category] || Scissors
-                            const isSelected = selectedServices.includes(
-                              service.id.toString(),
-                            )
-
-                            return (
-                              <div
-                                key={service.id}
-                                className={`cursor-pointer rounded-lg border p-4 transition-all duration-300 ${
-                                  isSelected
-                                    ? "border-[#D4A574] bg-[#D4A574]/10"
-                                    : "border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#D4A574]/30"
-                                }`}
-                                onClick={() =>
-                                  handleServiceToggle(service.id.toString())
-                                }
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex items-start space-x-3">
-                                    <div
-                                      className={`rounded-full p-2 ${
-                                        isSelected
-                                          ? "bg-[#D4A574]"
-                                          : "bg-[#2A2A2A]"
-                                      }`}
-                                    >
-                                      <IconComponent
-                                        className={`h-4 w-4 ${
-                                          isSelected
-                                            ? "text-black"
-                                            : "text-[#D4A574]"
-                                        }`}
-                                      />
-                                    </div>
-                                    <div>
-                                      <h4 className="text-white">
-                                        {service.name}
-                                      </h4>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-[#D4A574]">
-                                      {Number(service.price).toLocaleString(
-                                        "pt-BR",
-                                        {
-                                          style: "currency",
-                                          currency: "BRL",
-                                        },
-                                      )}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
+              <Step1Services
+                services={services}
+                selectedServices={selectedServices}
+                handleServiceToggle={handleServiceToggle}
+                serviceIcons={serviceIcons}
+              />
             )}
 
             {/* Etapa 2: Selecionar Profissional */}
             {currentStep === 2 && (
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-white">
-                    <Users className="h-5 w-5 text-[#D4A574]" />
-                    <span>Escolha os profissionais</span>
-                  </CardTitle>
-                  <p className="mt-2 text-white/60">
-                    Selecione um profissional para cada serviço
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-8">
-                  {selectedServiceDetails.map((service) => {
-                    const availableProfessionals = professionals.filter(
-                      (prof) => prof.specialties.includes(service.id),
-                    )
-                    const selectedProfessional =
-                      selectedProfessionals[service.id]
-
-                    return (
-                      <div key={service.id} className="space-y-4">
-                        <div className="flex items-center justify-between border-b border-[#2A2A2A] pb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className="rounded-full bg-[#D4A574]/10 p-2">
-                              {serviceIcons[service.category] ? (
-                                React.createElement(
-                                  serviceIcons[service.category],
-                                  {
-                                    className: "h-5 w-5 text-[#D4A574]",
-                                  },
-                                )
-                              ) : (
-                                <Scissors className="h-5 w-5 text-[#D4A574]" />
-                              )}
-                            </div>
-                            <div>
-                              <h3 className="text-lg text-white">
-                                {service.name}
-                              </h3>
-                              <p className="text-sm text-white/60">
-                                {Number(service.price).toLocaleString("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                          {availableProfessionals.map((professional) => {
-                            const isSelected =
-                              selectedProfessional ===
-                              professional.id.toString()
-
-                            return (
-                              <div
-                                key={professional.id}
-                                className={`cursor-pointer rounded-lg border p-4 transition-all duration-300 ${
-                                  isSelected
-                                    ? "border-[#D4A574] bg-[#D4A574]/10"
-                                    : "border-[#2A2A2A] bg-[#1A1A1A] hover:border-[#D4A574]/30"
-                                }`}
-                                onClick={() =>
-                                  handleProfessionalSelect(
-                                    service.id.toString(),
-                                    professional.id.toString(),
-                                  )
-                                }
-                              >
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-1">
-                                    <div className="mb-2 flex items-center justify-between">
-                                      <h4 className="text-white">
-                                        {professional.name}
-                                      </h4>
-                                    </div>
-
-                                    <p className="mb-2 text-sm text-white/60">
-                                      {professional.description}
-                                    </p>
-
-                                    <div className="flex items-center justify-between">
-                                      <Badge
-                                        variant="outline"
-                                        className="border-[#D4A574]/30 text-[#D4A574]"
-                                      >
-                                        <p>
-                                          {professional.experience} de
-                                          experiência
-                                        </p>
-                                      </Badge>
-                                      {isSelected && (
-                                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#D4A574]">
-                                          <Check className="h-4 w-4 text-black" />
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </CardContent>
-              </Card>
+              <Step2Professionals
+                professionals={professionals}
+                selectedProfessionals={selectedProfessionals}
+                selectedServiceDetails={selectedServiceDetails}
+                handleProfessionalSelect={handleProfessionalSelect}
+                serviceIcons={serviceIcons}
+              />
             )}
 
             {/* Etapa 3: Selecionar Dia e Hora */}
             {currentStep === 3 && (
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-white">
-                    <CalendarIcon className="h-5 w-5 text-[#D4A574]" />
-                    <span>Escolha data e horário</span>
-                  </CardTitle>
-                  <p className="mt-2 text-white/60">
-                    Selecione quando deseja ser atendido
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                    <div>
-                      <Label className="mb-4 block text-white">Data</Label>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={(date) => date < new Date()}
-                        locale={ptBR}
-                        className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A]"
-                      />
-                    </div>
-                    <div>
-                      <Label className="mb-4 block text-white">
-                        Horário disponível
-                      </Label>
-                      <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
-                        {timeSlots.map((time) => {
-                          const isUnavailable = unavailableTimes.includes(time)
-                          const isSelected = selectedTime === time
-
-                          return (
-                            <Button
-                              key={time}
-                              variant={isSelected ? "default" : "outline"}
-                              size="sm"
-                              disabled={isUnavailable}
-                              className={`${
-                                isUnavailable
-                                  ? "cursor-not-allowed opacity-50"
-                                  : isSelected
-                                    ? "bg-[#D4A574] text-black hover:bg-[#D4A574]/90"
-                                    : "border-[#2A2A2A] text-white hover:border-[#D4A574]/30 hover:bg-[#D4A574]/10"
-                              }`}
-                              onClick={() => {
-                                if (!isUnavailable) setSelectedTime(time)
-                              }}
-                            >
-                              {time}
-                            </Button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <Step3DateTime
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
+                selectedTime={selectedTime}
+                setSelectedTime={setSelectedTime}
+                timeSlots={timeSlots}
+                unavailableTimes={unavailableTimes}
+                ptBR={ptBR}
+              />
             )}
 
             {!isAuthenticated && currentStep === 4 && (
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2 text-white">
-                    <User className="h-5 w-5 text-[#D4A574]" />
-                    <span>Seus dados</span>
-                  </CardTitle>
-                  <p className="mt-2 text-white/60">
-                    Preencha suas informações para finalizar
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Selecionar tipo de conta */}
-                  <RadioGroup
-                    value={accountType}
-                    onValueChange={(value) =>
-                      setAccountType(value as "existing" | "new")
-                    }
-                    className="flex items-center"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value="existing"
-                        id="existing"
-                        className="border-[#D4A574] text-[#D4A574]"
-                      />
-                      <Label
-                        htmlFor="existing"
-                        className="cursor-pointer text-white"
-                      >
-                        Já tenho uma conta
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value="new"
-                        id="new"
-                        className="border-[#D4A574] text-[#D4A574]"
-                      />
-                      <Label
-                        htmlFor="new"
-                        className="cursor-pointer text-white"
-                      >
-                        Não tenho uma conta
-                      </Label>
-                    </div>
-                  </RadioGroup>
-
-                  <Separator className="bg-[#2A2A2A]" />
-
-                  {/* Formulário de Login */}
-                  {accountType === "existing" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white">
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              email: e.target.value,
-                            }))
-                          }
-                          className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                          placeholder="seu@email.com"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">
-                          Senha
-                        </Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              password: e.target.value,
-                            }))
-                          }
-                          className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                          placeholder="Digite sua senha"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Formulário de Cadastro */}
-                  {accountType === "new" && (
-                    <>
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-white">
-                            Nome completo
-                          </Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                name: e.target.value,
-                              }))
-                            }
-                            className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                            placeholder="Seu nome completo"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="phone" className="text-white">
-                            Telefone
-                          </Label>
-                          <Input
-                            id="phone"
-                            value={formData.phone}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                phone: e.target.value,
-                              }))
-                            }
-                            className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                            placeholder="(51) 99999-9999"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-white">
-                          E-mail
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              email: e.target.value,
-                            }))
-                          }
-                          className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                          placeholder="seu@email.com"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="password" className="text-white">
-                          Senha
-                        </Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              password: e.target.value,
-                            }))
-                          }
-                          className="border-[#2A2A2A] bg-[#1A1A1A] text-white focus:border-[#D4A574]"
-                          placeholder="Crie uma senha"
-                        />
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <Step4Account
+                accountType={accountType}
+                setAccountType={setAccountType}
+                formData={formData}
+                setFormData={setFormData}
+              />
             )}
 
             {/* Botões de Navegação */}
@@ -809,77 +425,14 @@ const Bookings = () => {
 
           {/* Resumo do Agendamento */}
           <div className="space-y-6">
-            <Card className="top-24 border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-lg text-white">
-                  Resumo do Agendamento
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedServiceDetails.length > 0 ? (
-                  <>
-                    <div className="space-y-4">
-                      {selectedServiceDetails.map((service) => {
-                        const selectedProfessional = professionals.find(
-                          (p) =>
-                            p.id.toString() ===
-                            selectedProfessionals[service.id],
-                        )
-
-                        return (
-                          <div key={service.id} className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-white">{service.name}</span>
-                              <span className="text-[#D4A574]">
-                                {Number(service.price).toLocaleString("pt-BR", {
-                                  style: "currency",
-                                  currency: "BRL",
-                                })}
-                              </span>
-                            </div>
-                            {selectedProfessional && (
-                              <div className="flex items-center space-x-2 text-xs text-white/60">
-                                <span>com {selectedProfessional.name}</span>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-
-                    <Separator className="bg-[#2A2A2A]" />
-
-                    {selectedDate && selectedTime && (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-white/70">Data:</span>
-                          <span className="text-white">
-                            {selectedDate?.toLocaleDateString("pt-BR")}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-white/70">Horário:</span>
-                          <span className="text-white">{selectedTime}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    <Separator className="bg-[#2A2A2A]" />
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-white">Total:</span>
-                      <span className="text-xl text-[#D4A574]">
-                        R$ {totalPrice.toFixed(2).replace(".", ",")}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <p className="py-8 text-center text-white/60">
-                    Nenhum serviço selecionado
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            <Summary
+              selectedServiceDetails={selectedServiceDetails}
+              professionals={professionals}
+              selectedProfessionals={selectedProfessionals}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              totalPrice={totalPrice}
+            />
 
             {/* Infos para Contato */}
             <Card className="border-[#2e2e2e] bg-black/50 backdrop-blur-sm">
@@ -904,6 +457,14 @@ const Bookings = () => {
           </div>
         </div>
       </div>
+
+      <SuccessBookingDialog
+        open={successDialogOpen}
+        onOpenChange={(open) => {
+          setSuccessDialogOpen(open)
+          if (!open) router.push("/")
+        }}
+      />
     </section>
   )
 }

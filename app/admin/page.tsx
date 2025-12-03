@@ -1,11 +1,11 @@
 "use client"
 
-import { SidebarAdmin } from "@/components/sidebar_admin"
+import { SidebarAdmin } from "@/components/admin/sidebar_admin"
 import React, { useState } from "react"
-import Schedule from "../../components/schedule/schedule"
+import Schedule from "../../components/admin/schedule"
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
-import ServicesTable from "@/components/services_table"
-import EmployeesTable from "@/components/employees_table"
+import ServicesTable from "@/components/admin/services_table"
+import EmployeesTable from "@/components/admin/employees_table"
 
 const AdminPage = () => {
   const [currentPage, setCurrentPage] = useState<
