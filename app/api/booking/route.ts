@@ -11,6 +11,22 @@ type Service = {
   price: number
 }
 
+type ClientData = {
+  name?: string
+  email?: string
+  phone?: string
+  password?: string
+}
+
+type PostBody = {
+  services: Service[]
+  professionals: Record<number, number>
+  date: string
+  time: string
+  client: ClientData
+  accountType: "admin" | "existing" | "new"
+}
+
 export async function GET() {
   try {
     const bookings = await prisma.booking.findMany({
@@ -18,28 +34,24 @@ export async function GET() {
       include: {
         user: true,
         employee: true,
-        bookingServices: {
-          include: { service: true, employee: true },
-        },
+        bookingServices: { include: { service: true, employee: true } },
       },
     })
-
     const formatted = bookings.map((b) => {
       const services = b.bookingServices.map((bs) => ({
         id: bs.serviceId,
         name: bs.service.name,
         price: Number(bs.price),
-        professional: bs.employee?.name ?? null,
+        userId: b.userId,
+        professionalId: bs.employee?.id,
+        professionalName: bs.employee?.name ?? "—",
       }))
-
       const professionals = Array.from(
         new Set(
           b.bookingServices.map((bs) => bs.employee?.name).filter(Boolean),
         ),
       )
-
       const totalPrice = services.reduce((s, it) => s + it.price, 0)
-
       return {
         id: b.id,
         date: b.date,
@@ -50,12 +62,10 @@ export async function GET() {
           .filter(Boolean)
           .join(", "),
         professional: professionals.filter(Boolean).join(", "),
-
         services,
         price: totalPrice,
       }
     })
-
     return NextResponse.json(formatted, { status: 200 })
   } catch (err) {
     console.error("GET /api/booking error:", err)
@@ -65,14 +75,27 @@ export async function GET() {
     )
   }
 }
+
 export async function POST(req: Request) {
   try {
-    const { services, professionals, date, time, client, accountType } =
-      await req.json()
+    const {
+      services,
+      professionals,
+      date,
+      time,
+      client,
+      accountType,
+    }: PostBody = await req.json()
 
     const isAdminCreating = accountType === "admin"
 
     let userId: number | null = null
+    let user: {
+      id: number
+      name: string
+      email: string
+      phone: string
+    } | null = null
 
     if (!isAdminCreating) {
       if (!client.email) {
@@ -82,7 +105,7 @@ export async function POST(req: Request) {
         )
       }
 
-      let user = await prisma.user.findUnique({
+      user = await prisma.user.findUnique({
         where: { email: client.email },
       })
 
@@ -94,21 +117,20 @@ export async function POST(req: Request) {
           )
         }
 
+        const hashedPassword = await hash(client.password!, 10)
+
         user = await prisma.user.create({
           data: {
-            name: client.name,
+            name: client.name || "",
             email: client.email,
-            phone: client.phone,
-            password: await hash(client.password, 10),
+            phone: client.phone || "",
+            password: hashedPassword,
           },
         })
       }
 
       userId = user.id
     }
-
-    const costumerName = client.name
-    const costumerPhone = client.phone
 
     if (!date || !time) {
       return NextResponse.json(
@@ -135,14 +157,16 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+    const costumerName = isAdminCreating ? client.name : (user?.name ?? null)
+    const costumerPhone = isAdminCreating ? client.phone : (user?.phone ?? null)
 
     const booking = await prisma.booking.create({
       data: {
         userId: userId,
         employeeId: Number(firstEmployeeId),
         date: parsedDate,
-        costumerName: isAdminCreating ? costumerName : null,
-        costumerPhone: isAdminCreating ? costumerPhone : null,
+        costumerName: costumerName,
+        costumerPhone: costumerPhone,
       },
     })
 

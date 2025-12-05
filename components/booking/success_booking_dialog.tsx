@@ -7,9 +7,16 @@ import { Button } from "../ui/button"
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
+  title: string
+  content: string
 }
 
-const SuccessBookingDialog = ({ open, onOpenChange }: Props) => {
+const SuccessBookingDialog = ({
+  open,
+  onOpenChange,
+  title,
+  content,
+}: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md border-[#2A2A2A] bg-[#1A1A1A] text-white">
@@ -22,11 +29,9 @@ const SuccessBookingDialog = ({ open, onOpenChange }: Props) => {
           </div>
           <div className="space-y-2 text-center">
             <DialogTitle className="text-2xl text-[#D4A574]">
-              Agendamento Criado!
+              {title}
             </DialogTitle>
-            <p className="text-white/60">
-              O agendamento foi salvo com sucesso no sistema.
-            </p>
+            <p className="text-white/60">{content}</p>
           </div>
           <div className="w-full">
             <Button

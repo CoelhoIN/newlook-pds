@@ -1,23 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Button } from "../ui/button"
 import { User, Phone, Scissors, Clock } from "lucide-react"
-
-interface BookingEvent {
-  id: number
-  price: number
-  costumerName: string
-  costumerPhone: string
-  service: string
-  professional: string
-  start: Date
-}
+import type { SelectedEvent, EditingData } from "./schedule"
 
 interface AppointmentDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  selectedEvent: BookingEvent
-  setEditingData: (d: BookingEvent) => void
+  selectedEvent: SelectedEvent | null
+  setEditingData: (data: EditingData | null) => void
   setIsEditing: (v: boolean) => void
+  handleDeleteAppointment: () => void
 }
 
 const BookingDetailsDialog = ({
@@ -26,7 +18,34 @@ const BookingDetailsDialog = ({
   selectedEvent,
   setEditingData,
   setIsEditing,
+  handleDeleteAppointment,
 }: AppointmentDetailsDialogProps) => {
+  function selectedEventToEditingData(
+    event: SelectedEvent | null,
+  ): EditingData | null {
+    if (!event) return null
+
+    const services =
+      event.services?.map((s) => ({
+        id: s.id,
+        professionalId: s.professionalId,
+        professionalName: s.professionalName,
+      })) ?? []
+
+    const serviceProfessionals: Record<number, number> = {}
+    services.forEach((s) => (serviceProfessionals[s.id] = s.professionalId))
+
+    return {
+      id: Number(event.id),
+      costumerName: event.costumerName ?? "",
+      costumerPhone: event.costumerPhone ?? "",
+      services,
+      professionals: serviceProfessionals,
+      date: event.start ? event.start.toISOString() : "",
+      userId: event.userId,
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl border-[#2A2A2A] bg-[#1A1A1A] text-white">
@@ -80,9 +99,9 @@ const BookingDetailsDialog = ({
                   <div>
                     <p className="mb-1 text-sm text-white/60">Serviço</p>
                     <p className="text-white">
-                      {" "}
-                      {(selectedEvent?.service ?? "").length > 0
-                        ? selectedEvent.service
+                      {selectedEvent.services &&
+                      selectedEvent.services.length > 0
+                        ? selectedEvent.services.map((s) => s.name).join(", ")
                         : "—"}
                     </p>
                   </div>
@@ -113,9 +132,12 @@ const BookingDetailsDialog = ({
               <div className="flex items-center gap-3">
                 <div>
                   <p className="text-white">
-                    {" "}
-                    {(selectedEvent?.professional ?? "").length > 0
-                      ? selectedEvent.professional
+                    {selectedEvent.services && selectedEvent.services.length > 0
+                      ? selectedEvent.services
+                          .map((s) =>
+                            s.professionalName ? s.professionalName : "—",
+                          )
+                          .join(", ")
                       : "—"}
                   </p>
                 </div>
@@ -132,7 +154,7 @@ const BookingDetailsDialog = ({
             className="flex-1 border-[#2A2A2A] text-white hover:border-[#D4A574]/30 hover:bg-[#D4A574]/10"
             onClick={() => {
               onOpenChange(false)
-              setEditingData(selectedEvent)
+              setEditingData(selectedEventToEditingData(selectedEvent))
               setIsEditing(true)
             }}
           >
@@ -141,8 +163,9 @@ const BookingDetailsDialog = ({
           <Button
             size="sm"
             className="flex-1 bg-red-500 text-white hover:bg-red-600"
+            onClick={handleDeleteAppointment}
           >
-            Cancelar
+            Excluir
           </Button>
         </div>
       </DialogContent>

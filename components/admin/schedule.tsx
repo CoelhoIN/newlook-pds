@@ -40,6 +40,14 @@ type Professional = {
   status: string
   services?: Service[]
 }
+export interface AppointmentService {
+  id: number
+  name: string
+  price: number
+  duration: number
+  professionalId: number
+  professionalName: string
+}
 
 interface Appointment {
   id: string
@@ -48,7 +56,10 @@ interface Appointment {
   services: {
     id: number
     name: string
-    price: string
+    price: number | string
+    duration: number
+    professionalId: number
+    professionalName: string
   }[]
   professionals?: Record<number, number>
   price: string
@@ -56,34 +67,43 @@ interface Appointment {
   status?: "confirmed" | "completed"
 }
 
-interface EditingData {
+export interface EditingData {
   id: number
   costumerName: string
   costumerPhone: string
+  userId?: number
   serviceId?: number
   services?: {
     id: number
-    professionalId?: number
-    EmployeeOnService?: { employeeId: number }
+    professionalId: number
+    professionalName: string
   }[]
+
   professionals?: Record<number, number>
-  date?: string
+  date: string
   client?: {
     name?: string
     phone?: string
   }
 }
 
-interface SelectedEvent {
+export interface SelectedEvent {
   id: string
   title: string
   start: Date | null
   end: Date | null
+  userId?: number
   costumerName?: string
   costumerPhone?: string
-  service?: string
-  professional?: string
-  price?: string
+  price?: number
+  services?: {
+    id: number
+    name: string
+    duration: number
+    price: number
+    professionalId: number
+    professionalName: string
+  }[]
 }
 
 const Schedule = () => {
@@ -98,6 +118,10 @@ const Schedule = () => {
   const [professionals, setProfessionals] = useState<Professional[]>([])
   const [calendarEvents, setCalendarEvents] = useState<EventInput[]>([])
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false)
+  const [successDialogData, setSuccessDialogData] = useState({
+    title: "",
+    content: "",
+  })
   const calendarRef = useRef<FullCalendar>(null)
 
   const [newAppointment, setNewAppointment] = useState({
@@ -107,6 +131,7 @@ const Schedule = () => {
     serviceProfessionals: {} as Record<number, number>,
     date: "",
     time: "",
+    userId: null as number | null,
   })
 
   async function fetchServices() {
@@ -191,6 +216,7 @@ const Schedule = () => {
       serviceProfessionals: {},
       date: "",
       time: "",
+      userId: null,
     })
     setEditingData(null)
     setIsEditing(false)
@@ -231,6 +257,11 @@ const Schedule = () => {
 
       setAppointments((prev) => [...prev, created])
       addEventToCalendar(created)
+
+      setSuccessDialogData({
+        title: "Agendamento Criado!",
+        content: "O agendamento foi salvo com sucesso no sistema.",
+      })
       setIsSuccessModalOpen(true)
       setIsNewAppointmentOpen(false)
     } catch (error) {
@@ -243,21 +274,43 @@ const Schedule = () => {
     if (!editingData) return
 
     try {
-      const body = {
-        client: {
-          costumerName: newAppointment.costumerName,
-          costumerPhone: newAppointment.costumerPhone,
-        },
-        services: newAppointment.services.map((id) => {
-          const s = services.find((srv) => srv.id === id)
+      const dateValue = newAppointment.date
+      const timeValue = newAppointment.time
+
+      if (!dateValue || !timeValue) {
+        alert("Data ou horário inválido!")
+        return
+      }
+
+      const localDateTime = new Date(
+        `${newAppointment.date}T${newAppointment.time}`,
+      )
+
+      const isLinkedToUser = Boolean(editingData?.userId)
+
+      const servicesBody: { id?: number; price?: number | string }[] =
+        newAppointment.services.map((serviceId) => {
+          const service = services.find((s) => s.id === serviceId)
           return {
-            id: s?.id,
-            price: s?.price,
+            id: service?.id,
+            price: service?.price,
           }
-        }),
+        })
+      const body: {
+        date: string
+        services: { id?: number; price?: number | string }[]
+        professionals: Record<number, number>
+        costumerName?: string
+        costumerPhone?: string
+      } = {
+        date: localDateTime.toISOString(),
+        services: servicesBody,
         professionals: newAppointment.serviceProfessionals,
-        date: newAppointment.date,
-        time: newAppointment.time,
+      }
+
+      if (!isLinkedToUser) {
+        body.costumerName = newAppointment.costumerName
+        body.costumerPhone = newAppointment.costumerPhone
       }
 
       const res = await fetch(`/api/booking/${editingData.id}`, {
@@ -275,13 +328,59 @@ const Schedule = () => {
       setAppointments((prev) =>
         prev.map((apt) => (apt.id === updated.id ? updated : apt)),
       )
+
       updateEventInCalendar(updated)
+      setSuccessDialogData({
+        title: "Agendamento Atualizado!",
+        content: "O agendamento foi editado com sucesso.",
+      })
       setIsSuccessModalOpen(true)
       setIsNewAppointmentOpen(false)
       resetForm()
     } catch (error) {
       console.error(error)
       alert("Erro ao atualizar agendamento!")
+    }
+  }
+
+  async function handleDeleteAppointment() {
+    if (!selectedEvent) return
+
+    const confirmDelete = confirm(
+      "Tem certeza que deseja excluir este agendamento?",
+    )
+    if (!confirmDelete) return
+
+    try {
+      const res = await fetch(`/api/booking/${selectedEvent.id}`, {
+        method: "DELETE",
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        alert(errorData.error || "Erro ao excluir o agendamento")
+        return
+      }
+
+      setAppointments((prev) => prev.filter((a) => a.id !== selectedEvent.id))
+
+      setTimeout(() => {
+        const calendarApi = calendarRef.current?.getApi()
+        const event = calendarApi?.getEventById(selectedEvent.id)
+        if (event) event.remove()
+
+        setIsDialogOpen(false)
+        setEditingData(null)
+        setIsEditing(false)
+        setSuccessDialogData({
+          title: "Agendamento Excluído!",
+          content: "O agendamento foi removido do sistema.",
+        })
+        setIsSuccessModalOpen(true)
+      }, 300)
+    } catch (error) {
+      console.error(error)
+      alert("Erro ao excluir o agendamento")
     }
   }
 
@@ -316,13 +415,26 @@ const Schedule = () => {
 
   const handleEventClick = (clickInfo: EventClickArg) => {
     const event = clickInfo.event
+    const booking = event.extendedProps as Appointment
+
     setSelectedEvent({
       id: event.id,
       title: event.title,
       start: event.start,
       end: event.end,
-      ...event.extendedProps,
+      costumerName: booking.costumerName,
+      costumerPhone: booking.costumerPhone,
+      price: Number(booking.price),
+      services: booking.services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        duration: s.duration,
+        price: Number(s.price),
+        professionalId: s.professionalId,
+        professionalName: s.professionalName,
+      })),
     })
+
     setIsDialogOpen(true)
   }
 
@@ -384,50 +496,44 @@ const Schedule = () => {
   }, [appointments])
 
   useEffect(() => {
+    setCalendarEvents(
+      appointments.map((apt) => ({
+        id: String(apt.id),
+        title: `${apt.costumerName} - ${apt.services.map((s) => s.name).join(", ")}`,
+        start: apt.date,
+        backgroundColor: "#D4A574",
+        borderColor: "#D4A574",
+        extendedProps: { ...apt },
+      })),
+    )
+  }, [appointments])
+
+  useEffect(() => {
     fetchServices()
     fetchProfessionals()
   }, [])
 
   useEffect(() => {
     if (isEditing && editingData) {
+      const dateObj = editingData.date ? new Date(editingData.date) : null
+
       setNewAppointment({
         costumerName: editingData.costumerName,
         costumerPhone: editingData.costumerPhone,
-        services: [editingData.serviceId || 0],
-        serviceProfessionals: editingData.professionals || {},
-        date: editingData.date
-          ? new Date(editingData.date).toISOString().split("T")[0]
-          : "",
-        time: editingData.date
-          ? new Date(editingData.date).toLocaleTimeString("pt-BR", {
+        services: editingData.services?.map((s) => s.id) ?? [],
+        serviceProfessionals: editingData.professionals ?? {},
+        date: dateObj ? dateObj.toISOString().split("T")[0] : "",
+        time: dateObj
+          ? dateObj.toLocaleTimeString("pt-BR", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,
             })
           : "",
+        userId: editingData.userId ?? null,
       })
     }
   }, [editingData, isEditing])
-
-  useEffect(() => {
-    const calendarApi = calendarRef.current?.getApi()
-    if (!calendarApi) return
-
-    calendarApi.removeAllEvents()
-
-    appointments.forEach((apt) => {
-      calendarApi.addEvent({
-        id: apt.id.toString(),
-        title: `${apt.costumerName} - ${apt.services}`,
-        start: apt.date,
-        backgroundColor: "#D4A574",
-        borderColor: "#D4A574",
-        extendedProps: {
-          ...apt,
-        },
-      })
-    })
-  }, [appointments])
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-black to-[#0A0A0A] pb-12 pt-24">
@@ -694,11 +800,33 @@ const Schedule = () => {
         onOpenChange={setIsDialogOpen}
         selectedEvent={selectedEvent}
         setEditingData={(event) => {
+          if (!event) return
+
           setEditingData(event)
+
+          const services = event.services ?? []
+
+          setNewAppointment({
+            costumerName: event.costumerName,
+            costumerPhone: event.costumerPhone,
+            services: services.map((s) => s.id),
+            serviceProfessionals: services.reduce(
+              (acc, s) => {
+                acc[s.id] = s.professionalId
+                return acc
+              },
+              {} as Record<number, number>,
+            ),
+            date: event.date,
+            time: "",
+            userId: event.userId ?? null,
+          })
+
           setIsEditing(true)
           setIsNewAppointmentOpen(true)
         }}
         setIsEditing={setIsEditing}
+        handleDeleteAppointment={handleDeleteAppointment}
       />
 
       {/* Dialog Novo Agendamento */}
@@ -709,7 +837,7 @@ const Schedule = () => {
           if (!open) resetForm()
         }}
         isEditing={isEditing}
-        defaultData={editingData ?? {}}
+        defaultData={editingData ?? undefined}
         services={services}
         professionals={professionals}
         newAppointment={newAppointment}
@@ -728,6 +856,8 @@ const Schedule = () => {
       <SuccessBookingDialog
         open={isSuccessModalOpen}
         onOpenChange={setIsSuccessModalOpen}
+        title={successDialogData.title}
+        content={successDialogData.content}
       />
     </section>
   )

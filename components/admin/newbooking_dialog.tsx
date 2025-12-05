@@ -23,14 +23,14 @@ type DefaultDataProfessional = {
 
 type DefaultDataService = {
   id: number
-  professionalId?: number
+  professionalId: number
   professional?: DefaultDataProfessional
-  EmployeeOnService?: { employeeId: number }
 }
 
 type DefaultData = {
   id: number
   date: string
+  userId?: number
   client?: {
     name?: string
     phone?: string
@@ -61,6 +61,7 @@ interface NewAppointment {
   serviceProfessionals: Record<number, number>
   date: string
   time: string
+  userId: number | null
 }
 
 interface Props {
@@ -100,6 +101,8 @@ const NewBookingDialog = ({
   isEditing,
   defaultData,
 }: Props) => {
+  const isLinkedToUser = Boolean(isEditing && defaultData?.userId)
+
   useEffect(() => {
     if (
       isEditing &&
@@ -120,23 +123,21 @@ const NewBookingDialog = ({
 
       const serviceProfessionals: Record<number, number> = {}
       servicesArray.forEach((s) => {
-        const profId =
-          s.professional?.id ??
-          s.professionalId ??
-          s.EmployeeOnService?.employeeId ??
-          0
+        const profId = s.professionalId ?? s.professional?.id ?? 0
 
         if (profId) serviceProfessionals[s.id] = profId
       })
 
-      setNewAppointment({
+      setNewAppointment((prev) => ({
+        ...prev,
         costumerName: defaultData.client?.name ?? "",
         costumerPhone: defaultData.client?.phone ?? "",
         services: serviceIds,
         serviceProfessionals,
         date: datePart,
         time: timePart ? timePart.slice(0, 5) : "",
-      })
+        userId: defaultData.userId ?? null,
+      }))
     }
   }, [isEditing, defaultData, services, professionals])
 
@@ -158,27 +159,33 @@ const NewBookingDialog = ({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
+                disabled={isLinkedToUser}
+                readOnly={isLinkedToUser}
                 type="text"
                 placeholder="Nome do Cliente"
                 value={newAppointment.costumerName}
-                onChange={(e) =>
-                  setNewAppointment({
-                    ...newAppointment,
+                onChange={(e) => {
+                  if (isLinkedToUser) return
+                  setNewAppointment((prev) => ({
+                    ...prev,
                     costumerName: e.target.value,
-                  })
-                }
+                  }))
+                }}
                 className="border-[#2A2A2A] bg-black/50 text-white"
               />
               <Input
+                disabled={isLinkedToUser}
+                readOnly={isLinkedToUser}
                 type="text"
                 placeholder="Telefone"
                 value={newAppointment.costumerPhone}
-                onChange={(e) =>
-                  setNewAppointment({
-                    ...newAppointment,
+                onChange={(e) => {
+                  if (isLinkedToUser) return
+                  setNewAppointment((prev) => ({
+                    ...prev,
                     costumerPhone: e.target.value,
-                  })
-                }
+                  }))
+                }}
                 className="border-[#2A2A2A] bg-black/50 text-white"
               />
             </div>

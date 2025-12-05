@@ -464,6 +464,8 @@ const Bookings = () => {
           setSuccessDialogOpen(open)
           if (!open) router.push("/")
         }}
+        title="Agendamento Criado!"
+        content="O agendamento foi salvo com sucesso no sistema."
       />
     </section>
   )
