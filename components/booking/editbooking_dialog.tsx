@@ -1,12 +1,11 @@
 /* eslint-disable */
-
 "use client"
 
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Badge } from "../ui/badge"
-import { Checkbox } from "../ui/checkbox"
 import { Label } from "../ui/label"
 import {
   Select,
@@ -15,8 +14,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select"
-import { Plus, X, Scissors } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Scissors, X } from "lucide-react"
+import { Checkbox } from "../ui/checkbox"
+
+export type BookingServiceItem = {
+  id: number
+  serviceId: number
+  name: string
+  price: number
+  duration: number
+  professionalId: number
+  professionalName: string | null
+}
+
+export type BookingItem = {
+  id: number
+  date: string
+  time: string
+  services: BookingServiceItem[]
+  costumerName: string
+  costumerPhone: string
+}
+
+export type Service = {
+  id: number
+  name: string
+  price: number
+  duration: number
+  category: string
+}
+
+export type Professional = {
+  id: number
+  name: string
+  services?: Service[]
+}
 
 export type DefaultDataProfessional = {
   id?: number
@@ -32,38 +64,18 @@ export type DefaultDataService = {
 export type DefaultData = {
   id: number
   date: string
-  userId?: number
-  client?: {
-    name?: string
-    phone?: string
-  }
+  client?: { name?: string; phone?: string }
   services?: DefaultDataService[]
 }
 
-type Service = {
+export interface EditAppointment {
   id: number
-  name: string
-  category: string
-  price: number
-  duration: number
-}
-
-type Professional = {
-  id: number
-  name: string
-  experience: string
-  status: string
-  services?: Service[]
-}
-
-interface NewAppointment {
   costumerName: string
   costumerPhone: string
   services: number[]
   serviceProfessionals: Record<number, number>
   date: string
   time: string
-  userId: number | null
 }
 
 interface Props {
@@ -71,39 +83,22 @@ interface Props {
   onOpenChange: (open: boolean) => void
   services: Service[]
   professionals: Professional[]
-  newAppointment: NewAppointment
-  setNewAppointment: React.Dispatch<React.SetStateAction<NewAppointment>>
-  handleToggleService: (id: number) => void
-  handleRemoveService: (id: number) => void
-  handleServiceProfessionalChange: (serviceId: number, empId: string) => void
-  getTotalPrice: () => number
-  getTotalDuration: () => number
-  isFormValid: () => boolean
-  handleSaveAppointment?: () => void
-  handleEditAppointment?: () => Promise<void>
-  isEditing?: boolean
+  editingData: EditAppointment
+  setEditingData: React.Dispatch<React.SetStateAction<EditAppointment>>
+  handleEditAppointment: () => Promise<void>
   defaultData?: DefaultData
 }
 
-const NewBookingDialog = ({
+const EditBookingDialog = ({
   open,
   onOpenChange,
   services,
   professionals,
-  newAppointment,
-  setNewAppointment,
-  handleToggleService,
-  handleRemoveService,
-  handleServiceProfessionalChange,
-  getTotalDuration,
-  getTotalPrice,
-  isFormValid,
-  handleSaveAppointment,
+  editingData,
+  setEditingData,
   handleEditAppointment,
-  isEditing,
   defaultData,
 }: Props) => {
-  const isLinkedToUser = Boolean(isEditing && defaultData?.userId)
   const [unavailableTimes, setUnavailableTimes] = useState<string[]>([])
 
   function subtractHours(time: string, hours: number) {
@@ -135,134 +130,125 @@ const NewBookingDialog = ({
   const availableTimes = timeSlots.filter((t) => !unavailableTimes.includes(t))
 
   useEffect(() => {
-    async function fetchUnavailableTimes() {
-      if (!newAppointment.date) {
-        setUnavailableTimes([])
-        return
-      }
+    if (!defaultData) return
 
-      try {
-        const res = await fetch(`/api/booking?date=${newAppointment.date}`)
-        const data = await res.json()
-
-        const formatedTimeData = data.map((t: string) => subtractHours(t, 3))
-
-        console.log("Horários ocupados:", formatedTimeData)
-
-        setUnavailableTimes(formatedTimeData)
-      } catch (error) {
-        console.error("Erro ao buscar horários ocupados:", error)
-        setUnavailableTimes([])
+    let isoDate = ""
+    if (defaultData.date) {
+      const parsed = new Date(defaultData.date)
+      if (!isNaN(parsed.getTime())) {
+        isoDate = parsed.toISOString()
       }
     }
 
-    fetchUnavailableTimes()
-  }, [newAppointment.date])
+    const [datePart, timeFull] = isoDate.includes("T")
+      ? isoDate.split("T")
+      : ["", ""]
+
+    const timePart = timeFull ? timeFull.slice(0, 5) : ""
+
+    const servicesArray = defaultData.services ?? []
+    const serviceIds = servicesArray.map((s) => s.id)
+
+    const serviceProfessionals: Record<number, number> = {}
+    servicesArray.forEach((s) => {
+      const profId = s.professionalId ?? s.professional?.id ?? 0
+      if (profId) serviceProfessionals[s.id] = profId
+    })
+
+    setEditingData({
+      id: defaultData.id,
+      costumerName: defaultData.client?.name ?? "",
+      costumerPhone: defaultData.client?.phone ?? "",
+      services: serviceIds,
+      serviceProfessionals,
+      date: datePart,
+      time: timePart,
+    })
+  }, [defaultData])
 
   useEffect(() => {
-    if (
-      isEditing &&
-      defaultData &&
-      services.length > 0 &&
-      professionals.length > 0
-    ) {
-      const isoDate = defaultData.date
-        ? new Date(defaultData.date).toISOString()
-        : ""
-      const [datePart, timePart] = isoDate.includes("T")
-        ? isoDate.split("T")
-        : [isoDate, ""]
-
-      const servicesArray = defaultData.services ?? []
-
-      const serviceIds = servicesArray.map((s) => s.id)
-
-      const serviceProfessionals: Record<number, number> = {}
-      servicesArray.forEach((s) => {
-        const profId = s.professionalId ?? s.professional?.id ?? 0
-
-        if (profId) serviceProfessionals[s.id] = profId
-      })
-
-      setNewAppointment((prev) => ({
-        ...prev,
-        costumerName: defaultData.client?.name ?? "",
-        costumerPhone: defaultData.client?.phone ?? "",
-        services: serviceIds,
-        serviceProfessionals,
-        date: datePart,
-        time: timePart ? timePart.slice(0, 5) : "",
-        userId: defaultData.userId ?? null,
-      }))
+    if (!editingData.date) return setUnavailableTimes([])
+    const fetchUnavailableTimes = async () => {
+      try {
+        const res = await fetch(`/api/booking?date=${editingData.date}`)
+        const data = await res.json()
+        setUnavailableTimes(data.map((t: string) => subtractHours(t, 3)))
+      } catch (err) {
+        console.error(err)
+        setUnavailableTimes([])
+      }
     }
-  }, [isEditing, defaultData, services, professionals])
+    fetchUnavailableTimes()
+  }, [editingData.date])
+
+  function handleRemoveService(id: number) {
+    setEditingData((prev) => ({
+      ...prev,
+      services: prev.services.filter((s) => s !== id),
+      serviceProfessionals: (() => {
+        const copy = { ...prev.serviceProfessionals }
+        delete copy[id]
+        return copy
+      })(),
+    }))
+  }
+
+  function handleServiceProfessionalChange(serviceId: number, empId: string) {
+    setEditingData((prev) => ({
+      ...prev,
+      serviceProfessionals: {
+        ...prev.serviceProfessionals,
+        [serviceId]: Number(empId),
+      },
+    }))
+  }
+
+  function handleToggleService(id: number) {
+    setEditingData((prev) => {
+      const already = prev.services.includes(id)
+      return {
+        ...prev,
+        services: already
+          ? prev.services.filter((s) => s !== id)
+          : [...prev.services, id],
+        serviceProfessionals: already
+          ? (() => {
+              const copy = { ...prev.serviceProfessionals }
+              delete copy[id]
+              return copy
+            })()
+          : { ...prev.serviceProfessionals, [id]: 0 },
+      }
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-xl overflow-y-auto border-[#2A2A2A] bg-[#1A1A1A] text-white">
         <DialogHeader>
           <DialogTitle className="text-xl text-[#D4A574]">
-            {isEditing ? "Editar Agendamento" : "Novo Agendamento"}
+            Editar Agendamento
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Infos do Cliente */}
-          <div className="space-y-3 rounded-lg bg-black/30 p-4">
-            <h3 className="mb-3 text-sm text-white/60">
-              Informações do Cliente
-            </h3>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
-                disabled={isLinkedToUser}
-                readOnly={isLinkedToUser}
-                type="text"
-                placeholder="Nome do Cliente"
-                value={newAppointment.costumerName}
-                onChange={(e) => {
-                  if (isLinkedToUser) return
-                  setNewAppointment((prev) => ({
-                    ...prev,
-                    costumerName: e.target.value,
-                  }))
-                }}
-                className="border-[#2A2A2A] bg-black/50 text-white"
-              />
-              <Input
-                disabled={isLinkedToUser}
-                readOnly={isLinkedToUser}
-                type="text"
-                placeholder="Telefone"
-                value={newAppointment.costumerPhone}
-                onChange={(e) => {
-                  if (isLinkedToUser) return
-                  setNewAppointment((prev) => ({
-                    ...prev,
-                    costumerPhone: e.target.value,
-                  }))
-                }}
-                className="border-[#2A2A2A] bg-black/50 text-white"
-              />
-            </div>
-          </div>
-
           {/* Serviços */}
           <div className="rounded-lg bg-black/30 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-sm text-white/60">Serviços</h3>
-              {newAppointment.services.length > 0 && (
+              {editingData.services.length > 0 && (
                 <div className="text-xs text-white/60">
-                  {newAppointment.services.length}{" "}
-                  {newAppointment.services.length === 1
+                  {editingData.services.length}{" "}
+                  {editingData.services.length === 1
                     ? "selecionado"
                     : "selecionados"}
                 </div>
               )}
             </div>
-            {newAppointment.services.length > 0 && (
+
+            {editingData.services.length > 0 && (
               <div className="mb-4 flex flex-wrap gap-2 rounded-lg bg-black/30 p-3">
-                {newAppointment.services.map((serviceId) => {
+                {editingData.services.map((serviceId) => {
                   const service = services.find((s) => s.id === serviceId)
                   return service ? (
                     <Badge
@@ -282,6 +268,7 @@ const NewBookingDialog = ({
                 })}
               </div>
             )}
+
             <div className="max-h-60 space-y-4 overflow-y-auto pr-2">
               {[
                 "Cabelo",
@@ -301,9 +288,7 @@ const NewBookingDialog = ({
                         >
                           <Checkbox
                             id={String(service.id)}
-                            checked={newAppointment.services.includes(
-                              service.id,
-                            )}
+                            checked={editingData.services.includes(service.id)}
                             onCheckedChange={() =>
                               handleToggleService(service.id)
                             }
@@ -324,27 +309,11 @@ const NewBookingDialog = ({
                 </div>
               ))}
             </div>
-
-            {/* Resumo Serviços */}
-            {newAppointment.services.length > 0 && (
-              <div className="mt-4 flex items-center justify-between border-t border-[#2A2A2A] pt-4">
-                <div>
-                  <p className="text-xs text-white/60">Duração Total</p>
-                  <p className="text-white">{getTotalDuration()} minutos</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-white/60">Total</p>
-                  <p className="text-[#D4A574]">
-                    R$ {getTotalPrice().toFixed(2).replace(".", ",")}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Profissionais */}
-          {newAppointment.services.length > 0 && (
-            <div className="rounded-lg bg-black/30 p-4">
+          {editingData.services.length > 0 && (
+            <div className="mt-4 rounded-lg bg-black/30 p-4">
               <h3 className="mb-3 text-sm text-white/60">
                 Atribuir Profissionais aos Serviços
               </h3>
@@ -352,9 +321,13 @@ const NewBookingDialog = ({
                 Selecione um profissional para cada serviço escolhido
               </p>
               <div className="space-y-3">
-                {newAppointment.services.map((serviceId) => {
+                {editingData.services.map((serviceId) => {
                   const service = services.find((s) => s.id === serviceId)
-                  return service ? (
+                  if (!service) return null
+                  const availableProfessionals = professionals.filter((pro) =>
+                    pro.services?.some((s) => s.id === serviceId),
+                  )
+                  return (
                     <div
                       key={serviceId}
                       className="flex flex-col gap-3 rounded-lg bg-black/30 p-3 sm:flex-row sm:items-center"
@@ -373,8 +346,7 @@ const NewBookingDialog = ({
                       <div className="sm:w-48">
                         <Select
                           value={String(
-                            newAppointment.serviceProfessionals[serviceId] ||
-                              "",
+                            editingData.serviceProfessionals[serviceId] || "",
                           )}
                           onValueChange={(value) =>
                             handleServiceProfessionalChange(serviceId, value)
@@ -384,11 +356,8 @@ const NewBookingDialog = ({
                             <SelectValue placeholder="Selecionar profissional" />
                           </SelectTrigger>
                           <SelectContent className="bg-black/80 text-white">
-                            {professionals
-                              .filter((pro) =>
-                                pro.services?.some((s) => s.id === serviceId),
-                              )
-                              .map((pro) => (
+                            {availableProfessionals.length > 0 ? (
+                              availableProfessionals.map((pro) => (
                                 <SelectItem
                                   key={pro.id}
                                   value={String(pro.id)}
@@ -396,36 +365,40 @@ const NewBookingDialog = ({
                                 >
                                   {pro.name}
                                 </SelectItem>
-                              ))}
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-white/50">
+                                Nenhum profissional disponível
+                              </div>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
                     </div>
-                  ) : null
+                  )
                 })}
               </div>
             </div>
           )}
 
-          {/* Data e horário */}
+          {/* Data e hora */}
           <div className="rounded-lg bg-black/30 p-4">
             <h3 className="mb-3 text-sm text-white/60">Data e Horário</h3>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
                 type="date"
-                value={newAppointment.date}
+                value={editingData.date}
                 onChange={(e) =>
-                  setNewAppointment({
-                    ...newAppointment,
-                    date: e.target.value,
-                  })
+                  setEditingData((p) => ({ ...p, date: e.target.value }))
                 }
                 className="border-[#2A2A2A] bg-black/50 text-white"
               />
+
               <Select
-                value={newAppointment.time}
+                value={editingData.time}
                 onValueChange={(value) =>
-                  setNewAppointment({ ...newAppointment, time: value })
+                  setEditingData({ ...editingData, time: value })
                 }
               >
                 <SelectTrigger className="border-[#2A2A2A] bg-black/50 text-white">
@@ -453,33 +426,22 @@ const NewBookingDialog = ({
             </div>
           </div>
 
-          {/* Botões de Ação */}
+          {/* Botões */}
           <div className="flex items-center gap-3 border-t border-[#2A2A2A] pt-4">
             <Button
               variant="outline"
-              className="flex-1 border-[#2A2A2A] text-white hover:border-[#D4A574]/30 hover:bg-[#D4A574]/10"
+              className="flex-1 border-[#2A2A2A] text-white hover:bg-[#D4A574]/10"
               onClick={() => onOpenChange(false)}
             >
               Cancelar
             </Button>
+
             <Button
               className="flex-1 bg-[#D4A574] text-black hover:bg-[#D4A574]/90"
-              onClick={
-                isEditing ? handleEditAppointment : handleSaveAppointment
-              }
-              disabled={!isFormValid()}
+              onClick={handleEditAppointment}
             >
-              {isEditing ? (
-                <>
-                  <Scissors className="mr-2 h-4 w-4" />
-                  Salvar Alterações
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Agendamento
-                </>
-              )}
+              <Scissors className="mr-2 h-4 w-4" />
+              Salvar Alterações
             </Button>
           </div>
         </div>
@@ -488,4 +450,4 @@ const NewBookingDialog = ({
   )
 }
 
-export default NewBookingDialog
+export default EditBookingDialog

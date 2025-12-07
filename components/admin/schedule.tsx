@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client"
 import React, { useState, useRef, useEffect } from "react"
 import FullCalendar from "@fullcalendar/react"
@@ -10,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Calendar as CalendarIcon,
-  Clock,
   ChevronLeft,
   ChevronRight,
   Grid3x3,
@@ -22,8 +23,10 @@ import {
 import type { EventClickArg, EventInput } from "@fullcalendar/core"
 import "./schedule.css"
 import BookingDetailsDialog from "./booking_details_dialog"
-import NewBookingDialog from "./newbooking_dialog"
+
 import SuccessBookingDialog from "../booking/success_booking_dialog"
+import ConfirmDeleteDialog from "./confirm_delete_dialog"
+import NewBookingDialog from "./newbooking_dialog"
 
 type Service = {
   id: number
@@ -111,6 +114,10 @@ const Schedule = () => {
   const [selectedEvent, setSelectedEvent] = useState<SelectedEvent | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false)
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false)
+  const [appointmentToDelete, setAppointmentToDelete] = useState<string | null>(
+    null,
+  )
   const [isEditing, setIsEditing] = useState(false)
   const [editingData, setEditingData] = useState<EditingData | null>(null)
   const [currentTitle, setCurrentTitle] = useState("")
@@ -123,6 +130,7 @@ const Schedule = () => {
     content: "",
   })
   const calendarRef = useRef<FullCalendar>(null)
+  const [currentMonth, setCurrentMonth] = useState(new Date())
 
   const [newAppointment, setNewAppointment] = useState({
     costumerName: "",
@@ -241,6 +249,7 @@ const Schedule = () => {
         date: newAppointment.date,
         time: newAppointment.time,
       }
+      console.log("hora:", newAppointment.time)
 
       const res = await fetch("/api/booking", {
         method: "POST",
@@ -255,8 +264,23 @@ const Schedule = () => {
         return
       }
 
-      setAppointments((prev) => [...prev, created])
-      addEventToCalendar(created)
+      const createdWithProfessionals = {
+        ...created,
+        services: created.services.map((s: any) => {
+          const professionalId = newAppointment.serviceProfessionals[s.id]
+          const professional = professionals.find(
+            (p) => p.id === professionalId,
+          )
+          return {
+            ...s,
+            professionalId,
+            professionalName: professional?.name || "",
+          }
+        }),
+      }
+
+      setAppointments((prev) => [...prev, createdWithProfessionals])
+      addEventToCalendar(createdWithProfessionals)
 
       setSuccessDialogData({
         title: "Agendamento Criado!",
@@ -343,16 +367,17 @@ const Schedule = () => {
     }
   }
 
-  async function handleDeleteAppointment() {
+  function askToDeleteAppointment() {
     if (!selectedEvent) return
+    setAppointmentToDelete(selectedEvent.id)
+    setIsConfirmDeleteOpen(true)
+  }
 
-    const confirmDelete = confirm(
-      "Tem certeza que deseja excluir este agendamento?",
-    )
-    if (!confirmDelete) return
+  async function handleDeleteAppointment() {
+    if (!appointmentToDelete) return
 
     try {
-      const res = await fetch(`/api/booking/${selectedEvent.id}`, {
+      const res = await fetch(`/api/booking/${appointmentToDelete}`, {
         method: "DELETE",
       })
 
@@ -362,21 +387,19 @@ const Schedule = () => {
         return
       }
 
-      setAppointments((prev) => prev.filter((a) => a.id !== selectedEvent.id))
+      setAppointments((prev) =>
+        prev.filter((a) => a.id !== appointmentToDelete),
+      )
 
       setTimeout(() => {
         const calendarApi = calendarRef.current?.getApi()
-        const event = calendarApi?.getEventById(selectedEvent.id)
+        const event = calendarApi?.getEventById(appointmentToDelete)
         if (event) event.remove()
 
         setIsDialogOpen(false)
         setEditingData(null)
         setIsEditing(false)
-        setSuccessDialogData({
-          title: "Agendamento Excluído!",
-          content: "O agendamento foi removido do sistema.",
-        })
-        setIsSuccessModalOpen(true)
+        setIsConfirmDeleteOpen(false)
       }, 300)
     } catch (error) {
       console.error(error)
@@ -535,6 +558,22 @@ const Schedule = () => {
     }
   }, [editingData, isEditing])
 
+  const month = currentMonth.getMonth()
+  const year = currentMonth.getFullYear()
+
+  const monthlyAppointments = appointments.filter((a) => {
+    const date = new Date(a.date)
+    return date.getMonth() === month && date.getFullYear() === year
+  })
+
+  const monthlyRevenue = monthlyAppointments.reduce((sum, appointment) => {
+    const serviceTotal = appointment.services.reduce(
+      (s, svc) => s + parseFloat(String(svc.price)),
+      0,
+    )
+    return sum + serviceTotal
+  }, 0)
+
   return (
     <section className="min-h-screen bg-gradient-to-b from-black to-[#0A0A0A] pb-12 pt-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -557,9 +596,11 @@ const Schedule = () => {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-white/60 sm:text-sm">Total</p>
+                      <p className="text-xs text-white/60 sm:text-sm">
+                        Total de Agendamentos
+                      </p>
                       <p className="mt-1 text-xl text-white sm:text-2xl">
-                        {appointments.length}
+                        {monthlyAppointments.length}
                       </p>
                     </div>
                     <div className="rounded-full bg-[#D4A574]/10 p-2 sm:p-3">
@@ -576,66 +617,10 @@ const Schedule = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs text-white/60 sm:text-sm">
-                        Confirmados
-                      </p>
-                      <p className="mt-1 text-xl text-white sm:text-2xl">
-                        {appointments.length}
-                      </p>
-                    </div>
-                    <div className="rounded-full bg-green-500/10 p-2 sm:p-3">
-                      <CalendarDays className="h-4 w-4 text-green-500 sm:h-6 sm:w-6" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-white/60 sm:text-sm">
-                        Pendentes
-                      </p>
-                      <p className="mt-1 text-xl text-white sm:text-2xl">
-                        {appointments.length}
-                      </p>
-                    </div>
-                    <div className="rounded-full bg-yellow-500/10 p-2 sm:p-3">
-                      <Clock className="h-4 w-4 text-yellow-500 sm:h-6 sm:w-6" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div>
-              <Card className="border-[#2A2A2A] bg-black/50 backdrop-blur-sm">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-white/60 sm:text-sm">
                         Receita
                       </p>
                       <p className="mt-1 text-xl text-white sm:text-2xl">
-                        R${" "}
-                        {appointments
-                          .filter(
-                            (a) =>
-                              a.status === "confirmed" ||
-                              a.status === "completed",
-                          )
-                          .reduce(
-                            (sum, a) =>
-                              sum +
-                              parseFloat(
-                                a.price.replace("R$ ", "").replace(",", "."),
-                              ),
-                            0,
-                          )
-                          .toFixed(2)
-                          .replace(".", ",")}
+                        R$ {monthlyRevenue.toFixed(2).replace(".", ",")}
                       </p>
                     </div>
                     <div className="rounded-full bg-[#D4A574]/10 p-2 sm:p-3">
@@ -786,6 +771,7 @@ const Schedule = () => {
                   }}
                   datesSet={(dateInfo) => {
                     setCurrentTitle(dateInfo.view.title)
+                    setCurrentMonth(dateInfo.view.currentStart)
                   }}
                 />
               </div>
@@ -826,7 +812,7 @@ const Schedule = () => {
           setIsNewAppointmentOpen(true)
         }}
         setIsEditing={setIsEditing}
-        handleDeleteAppointment={handleDeleteAppointment}
+        handleDeleteAppointment={askToDeleteAppointment}
       />
 
       {/* Dialog Novo Agendamento */}
@@ -858,6 +844,12 @@ const Schedule = () => {
         onOpenChange={setIsSuccessModalOpen}
         title={successDialogData.title}
         content={successDialogData.content}
+      />
+
+      <ConfirmDeleteDialog
+        open={isConfirmDeleteOpen}
+        onOpenChange={setIsConfirmDeleteOpen}
+        onConfirm={handleDeleteAppointment}
       />
     </section>
   )

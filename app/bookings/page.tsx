@@ -1,3 +1,5 @@
+/* eslint-disable */
+
 "use client"
 
 import React, { useEffect, useState } from "react"
@@ -59,6 +61,7 @@ const timeSlots = [
   "16:00",
   "16:30",
   "17:00",
+  "17:30",
 ]
 const serviceIcons: Record<string, LucideIcon> = {
   Cabelo: Scissors,
@@ -93,6 +96,20 @@ const Bookings = () => {
     email: "",
     password: "",
   })
+  function subtractHoursFromTime(time: string, hours: number = 3) {
+    const [h, m] = time.split(":").map(Number)
+
+    const date = new Date()
+    date.setHours(h)
+    date.setMinutes(m)
+
+    date.setHours(date.getHours() - hours)
+
+    const newH = String(date.getHours()).padStart(2, "0")
+    const newM = String(date.getMinutes()).padStart(2, "0")
+
+    return `${newH}:${newM}`
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -274,7 +291,7 @@ const Bookings = () => {
 
         const bookedTimes = filtered.map((b) => {
           const timePart = new Date(b.date!).toTimeString().slice(0, 5)
-          return timePart
+          return subtractHoursFromTime(timePart, 3)
         })
 
         console.log("Horários ocupados normalizados:", bookedTimes)

@@ -27,8 +27,27 @@ type PostBody = {
   accountType: "admin" | "existing" | "new"
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const date = searchParams.get("date")
+
+    if (date) {
+      const bookings = await prisma.booking.findMany({
+        where: {
+          date: {
+            gte: new Date(`${date}T00:00:00.000Z`),
+            lt: new Date(`${date}T23:59:59.000Z`),
+          },
+        },
+        select: { date: true },
+      })
+
+      const times = bookings.map((b) => b.date.toISOString().substring(11, 16))
+
+      return NextResponse.json(times)
+    }
+
     const bookings = await prisma.booking.findMany({
       orderBy: { date: "asc" },
       include: {
@@ -138,6 +157,7 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+
     const parsedDate = new Date(`${date}T${time}:00`)
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json(
