@@ -1,0 +1,32 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/account/:id",
+      "destination": "/api/account/[id]"
+    },
+    {
+      "source": "/api/booking/:id",
+      "destination": "/api/booking/[id]"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/[...nextauth]"
+    },
+    {
+      "source": "/api/booking",
+      "destination": "/api/booking"
+    },
+    {
+      "source": "/api/employees",
+      "destination": "/api/employees"
+    },
+    {
+      "source": "/api/register",
+      "destination": "/api/register"
+    },
+    {
+      "source": "/api/services",
+      "destination": "/api/services"
+    }
+  ]
+}
