@@ -149,24 +149,3 @@ export async function PUT(
     )
   }
 }
-
-export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
-) {
-  try {
-    const id = Number(params.id)
-
-    await prisma.booking.delete({
-      where: { id },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.log(error)
-    return NextResponse.json(
-      { error: "Erro ao excluir agendamento" },
-      { status: 500 },
-    )
-  }
-}
