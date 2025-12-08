@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 "use client"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,7 +15,6 @@ import {
   Mail,
   Phone,
   User,
-  X,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -37,12 +34,18 @@ import EditBookingDialog, {
   EditAppointment,
   Service,
   Professional,
-  DefaultData,
 } from "@/components/booking/editbooking_dialog"
+
+interface User {
+  id: number
+  name: string
+  email: string
+  phone: string
+}
 
 const Account = () => {
   const { data: session, status } = useSession()
-  const [userData, setUserData] = useState<any>(null)
+  const [userData, setUserData] = useState<User | null>(null)
   const [upcomingBookings, setUpcomingBookings] = useState<BookingItem[]>([])
   const [pastBookings, setPastBookings] = useState<BookingItem[]>([])
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -90,7 +93,7 @@ const Account = () => {
       setPastBookings(data.past)
     }
     load()
-  }, [status])
+  }, [status, session])
 
   useEffect(() => {
     if (userData) {

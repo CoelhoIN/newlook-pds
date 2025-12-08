@@ -7,11 +7,12 @@ type BookingUpdateBody = {
   costumerName?: string
   costumerPhone?: string
   date?: string
+  time?: string
   services?: {
     id: number
     price: number
+    professionalId: number
   }[]
-  professionals?: Record<number, number>
 }
 
 export async function PUT(
@@ -33,6 +34,33 @@ export async function PUT(
       )
     }
 
+    let servicesDataToCreate = undefined
+
+    if (body.services && body.services.length > 0) {
+      const serviceIds = body.services.map((s) => s.id)
+
+      const dbServices = await prisma.service.findMany({
+        where: { id: { in: serviceIds } },
+        select: { id: true, price: true },
+      })
+
+      const priceMap = new Map(dbServices.map((s) => [s.id, Number(s.price)]))
+
+      servicesDataToCreate = body.services.map((s) => {
+        const realPrice = priceMap.get(s.id)
+
+        if (realPrice === undefined) {
+          throw new Error(`Serviço ID ${s.id} não encontrado no banco.`)
+        }
+
+        return {
+          serviceId: s.id,
+          price: realPrice,
+          employeeId: s.professionalId || undefined,
+        }
+      })
+    }
+
     const canEditClientInfo = !existing.userId
 
     const updated = await prisma.booking.update({
@@ -41,15 +69,14 @@ export async function PUT(
         costumerName: canEditClientInfo ? body.costumerName : undefined,
         costumerPhone: canEditClientInfo ? body.costumerPhone : undefined,
 
-        date: body.date ? new Date(body.date) : undefined,
-        bookingServices: body.services
+        date:
+          body.date && body.time
+            ? new Date(`${body.date}T${body.time}:00`)
+            : undefined,
+        bookingServices: servicesDataToCreate
           ? {
               deleteMany: {},
-              create: body.services.map((s) => ({
-                serviceId: s.id,
-                price: s.price,
-                employeeId: body.professionals?.[s.id] ?? undefined,
-              })),
+              create: servicesDataToCreate,
             }
           : undefined,
       },

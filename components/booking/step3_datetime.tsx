@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-
 "use client"
 
 import { CalendarIcon } from "lucide-react"
@@ -50,13 +48,19 @@ const Step3DateTime = ({
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              disabled={(date) => date < new Date()}
+              disabled={(date) => {
+                const today = new Date()
+                today.setHours(0, 0, 0, 0)
+                return date < today
+              }}
               locale={ptBR}
               className="rounded-lg border border-[#2A2A2A] bg-[#1A1A1A]"
             />
           </div>
           <div>
-            <Label className="mb-4 block text-white">Horário disponível</Label>
+            <Label className="mb-4 block text-white">
+              Horários disponíveis
+            </Label>
             <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
               {timeSlots.map((time) => {
                 const isUnavailable = unavailableTimes.includes(time)

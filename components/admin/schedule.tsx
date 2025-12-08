@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 "use client"
 import React, { useState, useRef, useEffect } from "react"
 import FullCalendar from "@fullcalendar/react"
@@ -249,7 +247,6 @@ const Schedule = () => {
         date: newAppointment.date,
         time: newAppointment.time,
       }
-      console.log("hora:", newAppointment.time)
 
       const res = await fetch("/api/booking", {
         method: "POST",
@@ -266,7 +263,7 @@ const Schedule = () => {
 
       const createdWithProfessionals = {
         ...created,
-        services: created.services.map((s: any) => {
+        services: (created.services as Service[]).map((s) => {
           const professionalId = newAppointment.serviceProfessionals[s.id]
           const professional = professionals.find(
             (p) => p.id === professionalId,
@@ -306,10 +303,6 @@ const Schedule = () => {
         return
       }
 
-      const localDateTime = new Date(
-        `${newAppointment.date}T${newAppointment.time}`,
-      )
-
       const isLinkedToUser = Boolean(editingData?.userId)
 
       const servicesBody: { id?: number; price?: number | string }[] =
@@ -318,16 +311,19 @@ const Schedule = () => {
           return {
             id: service?.id,
             price: service?.price,
+            professionalId: newAppointment.serviceProfessionals[serviceId],
           }
         })
       const body: {
         date: string
+        time: string
         services: { id?: number; price?: number | string }[]
         professionals: Record<number, number>
         costumerName?: string
         costumerPhone?: string
       } = {
-        date: localDateTime.toISOString(),
+        date: newAppointment.date,
+        time: newAppointment.time,
         services: servicesBody,
         professionals: newAppointment.serviceProfessionals,
       }

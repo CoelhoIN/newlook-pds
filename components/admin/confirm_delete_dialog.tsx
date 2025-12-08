@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 "use client"
 
 import { Trash2 } from "lucide-react"

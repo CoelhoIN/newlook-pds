@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -50,22 +49,12 @@ export type Professional = {
   services?: Service[]
 }
 
-export type DefaultDataProfessional = {
-  id?: number
-  name?: string
-}
-
-export type DefaultDataService = {
-  id: number
-  professionalId: number
-  professional?: DefaultDataProfessional
-}
-
 export type DefaultData = {
   id: number
   date: string
+  time: string
   client?: { name?: string; phone?: string }
-  services?: DefaultDataService[]
+  services?: BookingServiceItem[]
 }
 
 export interface EditAppointment {
@@ -127,32 +116,38 @@ const EditBookingDialog = ({
 
   const timeSlots = generateTimes()
 
-  const availableTimes = timeSlots.filter((t) => !unavailableTimes.includes(t))
+  const availableTimes = timeSlots.filter((t) => {
+    if (!unavailableTimes.includes(t)) return true
+
+    if (defaultData && t === defaultData.time) {
+      return true
+    }
+
+    return false
+  })
 
   useEffect(() => {
     if (!defaultData) return
 
     let isoDate = ""
     if (defaultData.date) {
-      const parsed = new Date(defaultData.date)
+      const parsed = new Date(
+        defaultData.date.replace(/(\d{2})\/(\d{2})\/(\d{4})/, "$3-$2-$1"),
+      )
       if (!isNaN(parsed.getTime())) {
-        isoDate = parsed.toISOString()
+        isoDate = parsed.toISOString().split("T")[0]
       }
     }
 
-    const [datePart, timeFull] = isoDate.includes("T")
-      ? isoDate.split("T")
-      : ["", ""]
-
-    const timePart = timeFull ? timeFull.slice(0, 5) : ""
+    const datePart = isoDate
 
     const servicesArray = defaultData.services ?? []
-    const serviceIds = servicesArray.map((s) => s.id)
+    const serviceIds = servicesArray.map((s) => s.serviceId)
 
     const serviceProfessionals: Record<number, number> = {}
     servicesArray.forEach((s) => {
-      const profId = s.professionalId ?? s.professional?.id ?? 0
-      if (profId) serviceProfessionals[s.id] = profId
+      const profId = s.professionalId ?? 0
+      if (profId) serviceProfessionals[s.serviceId] = profId
     })
 
     setEditingData({
@@ -162,7 +157,7 @@ const EditBookingDialog = ({
       services: serviceIds,
       serviceProfessionals,
       date: datePart,
-      time: timePart,
+      time: defaultData.time,
     })
   }, [defaultData])
 
@@ -439,6 +434,14 @@ const EditBookingDialog = ({
             <Button
               className="flex-1 bg-[#D4A574] text-black hover:bg-[#D4A574]/90"
               onClick={handleEditAppointment}
+              disabled={
+                editingData.services.length === 0 ||
+                !editingData.date ||
+                !editingData.time ||
+                editingData.services.some(
+                  (serviceId) => !editingData.serviceProfessionals[serviceId],
+                )
+              }
             >
               <Scissors className="mr-2 h-4 w-4" />
               Salvar Alterações

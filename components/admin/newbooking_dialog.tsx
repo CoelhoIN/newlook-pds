@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 "use client"
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
@@ -105,6 +103,7 @@ const NewBookingDialog = ({
 }: Props) => {
   const isLinkedToUser = Boolean(isEditing && defaultData?.userId)
   const [unavailableTimes, setUnavailableTimes] = useState<string[]>([])
+  const [time, setTime] = useState<string | undefined>()
 
   function subtractHours(time: string, hours: number) {
     const [h, m] = time.split(":").map(Number)
@@ -132,7 +131,15 @@ const NewBookingDialog = ({
 
   const timeSlots = generateTimes()
 
-  const availableTimes = timeSlots.filter((t) => !unavailableTimes.includes(t))
+  const availableTimes = timeSlots.filter((t) => {
+    if (!unavailableTimes.includes(t)) return true
+
+    if (defaultData && t === time) {
+      return true
+    }
+
+    return false
+  })
 
   useEffect(() => {
     async function fetchUnavailableTimes() {
@@ -142,12 +149,12 @@ const NewBookingDialog = ({
       }
 
       try {
-        const res = await fetch(`/api/booking?date=${newAppointment.date}`)
+        const res = await fetch(
+          `/api/booking?date=${newAppointment.date.split("T")[0]}`,
+        )
         const data = await res.json()
 
         const formatedTimeData = data.map((t: string) => subtractHours(t, 3))
-
-        console.log("Horários ocupados:", formatedTimeData)
 
         setUnavailableTimes(formatedTimeData)
       } catch (error) {
@@ -173,6 +180,10 @@ const NewBookingDialog = ({
         ? isoDate.split("T")
         : [isoDate, ""]
 
+      const timeToUse = subtractHours(timePart.slice(0, 5), 3)
+
+      setTime(timeToUse)
+
       const servicesArray = defaultData.services ?? []
 
       const serviceIds = servicesArray.map((s) => s.id)
@@ -191,7 +202,7 @@ const NewBookingDialog = ({
         services: serviceIds,
         serviceProfessionals,
         date: datePart,
-        time: timePart ? timePart.slice(0, 5) : "",
+        time: timeToUse,
         userId: defaultData.userId ?? null,
       }))
     }

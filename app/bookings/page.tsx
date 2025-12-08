@@ -1,5 +1,3 @@
-/* eslint-disable */
-
 "use client"
 
 import React, { useEffect, useState } from "react"
@@ -196,15 +194,6 @@ const Bookings = () => {
 
       const accountTypeToSend = accountType
 
-      console.log("Body enviado para /api/booking:", {
-        services: selectedServiceDetails,
-        professionals: selectedProfessionals,
-        date: formattedDate,
-        time: formattedTime,
-        client: clientData,
-        accountType: accountTypeToSend,
-      })
-
       const response = await fetch("/api/booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -281,20 +270,12 @@ const Bookings = () => {
         const dateStr = selectedDate.toISOString().split("T")[0]
         const res = await fetch(`/api/booking?date=${dateStr}`)
 
-        const data: { date: string }[] = await res.json()
+        const data: string[] = await res.json()
 
-        console.log("Horários retornados do banco:", data)
-
-        const filtered = data.filter(
-          (b) => b.date && b.date.startsWith(dateStr),
-        )
-
-        const bookedTimes = filtered.map((b) => {
-          const timePart = new Date(b.date!).toTimeString().slice(0, 5)
-          return subtractHoursFromTime(timePart, 3)
+        const bookedTimes = data.map((t) => {
+          return subtractHoursFromTime(t, 3)
         })
 
-        console.log("Horários ocupados normalizados:", bookedTimes)
         setUnavailableTimes(bookedTimes)
       } catch (error) {
         console.error("Erro ao buscar horários ocupados:", error)

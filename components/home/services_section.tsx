@@ -1,4 +1,3 @@
-/* eslint-disable */
 "use client"
 
 import { Flower2, Heart, Scissors, Sparkles } from "lucide-react"
