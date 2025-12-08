@@ -159,6 +159,7 @@ const EditBookingDialog = ({
       date: datePart,
       time: defaultData.time,
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultData])
 
   useEffect(() => {

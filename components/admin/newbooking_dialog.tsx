@@ -206,6 +206,7 @@ const NewBookingDialog = ({
         userId: defaultData.userId ?? null,
       }))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditing, defaultData, services, professionals])
 
   return (
