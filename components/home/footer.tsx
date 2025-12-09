@@ -4,9 +4,9 @@ import Image from "next/image"
 const currentYear = new Date().getFullYear()
 
 const quickLinks = [
-  { name: "Sobre Nós", href: "#sobre" },
-  { name: "Serviços", href: "#servicos" },
-  { name: "Contato", href: "#contato" },
+  { name: "Sobre Nós", href: "/#sobre" },
+  { name: "Serviços", href: "/#servicos" },
+  { name: "Contato", href: "/#contato" },
 ]
 
 const contactInfo = [
@@ -25,8 +25,16 @@ const contactInfo = [
 ]
 
 const socialLinks = [
-  { icon: Facebook, href: "#", label: "Facebook" },
-  { icon: Instagram, href: "#", label: "Instagram" },
+  {
+    icon: Instagram,
+    href: "https://www.instagram.com/salao__new_look?igsh=MWRoM3E3NzFxajVibQ==",
+    label: "Instagram",
+  },
+  {
+    icon: Facebook,
+    href: "https://www.facebook.com/share/16jCPpSC7r/?mibextid=wwXIfr",
+    label: "Facebook",
+  },
 ]
 const Footer = () => {
   return (

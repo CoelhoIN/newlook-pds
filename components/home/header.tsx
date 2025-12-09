@@ -10,9 +10,9 @@ import { Button } from "../ui/button"
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigationItems = [
-    { name: "SOBRE NÓS", href: "#sobre" },
-    { name: "SERVIÇOS", href: "#servicos" },
-    { name: "CONTATO", href: "#contato" },
+    { name: "SOBRE NÓS", href: "/#sobre" },
+    { name: "SERVIÇOS", href: "/#servicos" },
+    { name: "CONTATO", href: "/#contato" },
   ]
 
   return (

@@ -60,7 +60,10 @@ const ServicesSection = () => {
   }, [])
 
   return (
-    <section className="bg-gradient-to-b from-black to-[#111111] py-20">
+    <section
+      id="servicos"
+      className="bg-gradient-to-b from-black to-[#111111] py-20"
+    >
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="mb-16 text-center">
           <div className="mb-4 inline-block">
