@@ -158,7 +158,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const parsedDate = new Date(`${date}T${time}:00`)
+    const parsedDate = new Date(`${date}T${time}:00-03:00`)
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json(
         { error: "Data ou hora inválida." },

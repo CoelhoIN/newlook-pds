@@ -73,7 +73,7 @@ export async function PUT(
 
         date:
           body.date && body.time
-            ? new Date(`${body.date}T${body.time}:00`)
+            ? new Date(`${body.date}T${body.time}:00-03:00`)
             : undefined,
         bookingServices: servicesDataToCreate
           ? {
