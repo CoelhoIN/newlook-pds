@@ -119,7 +119,7 @@ const EditBookingDialog = ({
   const availableTimes = timeSlots.filter((t) => {
     if (!unavailableTimes.includes(t)) return true
 
-    if (defaultData && t === defaultData.time) {
+    if (defaultData && t === subtractHours(defaultData.time, 3)) {
       return true
     }
 
@@ -141,6 +141,8 @@ const EditBookingDialog = ({
 
     const datePart = isoDate
 
+    const timeToUse = subtractHours(defaultData.time, 3)
+
     const servicesArray = defaultData.services ?? []
     const serviceIds = servicesArray.map((s) => s.serviceId)
 
@@ -157,7 +159,7 @@ const EditBookingDialog = ({
       services: serviceIds,
       serviceProfessionals,
       date: datePart,
-      time: defaultData.time,
+      time: timeToUse,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultData])
