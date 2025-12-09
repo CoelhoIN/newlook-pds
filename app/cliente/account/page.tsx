@@ -75,6 +75,21 @@ const Account = () => {
 
   const handleHomePage = () => router.push("/")
 
+  function subtractHours(time: string, hours: number) {
+    const [h, m] = time.split(":").map(Number)
+
+    const date = new Date()
+    date.setHours(h)
+    date.setMinutes(m)
+
+    date.setHours(date.getHours() - hours)
+
+    const newH = String(date.getHours()).padStart(2, "0")
+    const newM = String(date.getMinutes()).padStart(2, "0")
+
+    return `${newH}:${newM}`
+  }
+
   const fetchBookings = async () => {
     if (!session) return
     const res = await fetch(`/api/account/${session.user.id}`)
@@ -424,7 +439,7 @@ const Account = () => {
                               <div className="flex items-center gap-1.5">
                                 <Clock className="h-3.5 w-3.5 text-[#8d6e3d]" />
                                 <span className="text-[#ededed]">
-                                  {booking.time}
+                                  {subtractHours(booking.time, 3)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -512,7 +527,7 @@ const Account = () => {
                               <div className="flex items-center gap-1.5">
                                 <Clock className="h-3.5 w-3.5 text-[#8d6e3d]" />
                                 <span className="text-[#ededed]">
-                                  {booking.time}
+                                  {subtractHours(booking.time, 3)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
